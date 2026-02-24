@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@envelope/core": ["../../packages/core/src/index.ts"],
+      "@envelope/db": ["../../packages/db/src/index.ts"],
+      "@envelope/security": ["../../packages/security/src/index.ts"],
+      "@envelope/providers-gmail": ["../../packages/providers-gmail/src/index.ts"],
+      "@envelope/observability": ["../../packages/observability/src/index.ts"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

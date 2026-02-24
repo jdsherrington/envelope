@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: envelope-postgres
+    environment:
+      POSTGRES_USER: envelope
+      POSTGRES_PASSWORD: envelope
+      POSTGRES_DB: envelope
+    ports:
+      - "5432:5432"
+    volumes:
+      - envelope-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U envelope"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: envelope-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgres://envelope:envelope@postgres:5432/envelope
+      APP_ORIGIN: http://localhost:3000
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: envelope-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgres://envelope:envelope@postgres:5432/envelope
+
+volumes:
+  envelope-postgres:
