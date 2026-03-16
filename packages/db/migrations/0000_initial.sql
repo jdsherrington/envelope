@@ -161,7 +161,7 @@ CREATE TABLE quota_events (
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   window_label text NOT NULL,
   used integer,
-  limit integer,
+  "limit" integer,
   backoff_until timestamptz,
   error_code text,
   error_message text,

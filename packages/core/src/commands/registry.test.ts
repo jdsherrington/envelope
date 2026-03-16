@@ -17,6 +17,8 @@ const ctx: CommandContext = {
     density: "comfortable",
     theme: "dark",
     keymap: "superhuman",
+    contrast: "standard",
+    hideRareLabels: true,
     paletteOpen: false,
   },
 };

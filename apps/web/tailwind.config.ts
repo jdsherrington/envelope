@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Avenir Next", "Segoe UI", "Helvetica Neue", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "Segoe UI", "Helvetica Neue", "system-ui", "sans-serif"],
         mono: ["IBM Plex Mono", "Menlo", "Consolas", "monospace"],
       },
       zIndex: {

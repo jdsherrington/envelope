@@ -2,12 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { appRepository } from "@envelope/db";
 import { verifyPassword, verifyTotpCode } from "@envelope/security";
 import { getClientRateLimitKey, issueSession, setSessionCookies } from "@/lib/server/auth";
+import { requireSameOrigin } from "@/lib/server/guards";
 import { badRequest, forbidden, serverError, unauthorized } from "@/lib/server/http";
 import { loginSchema } from "@/lib/server/schemas";
 import { decryptFromStorage } from "@/lib/server/secrets";
 
 export async function POST(request: NextRequest) {
   try {
+    requireSameOrigin(request);
+
     const payload = loginSchema.safeParse(await request.json());
     if (!payload.success) {
       return badRequest(payload.error.message);
@@ -46,6 +49,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, csrfToken: session.csrfToken });
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_ORIGIN") {
+      return forbidden("Invalid request origin");
+    }
     return serverError(error instanceof Error ? error.message : "Failed to login");
   }
 }

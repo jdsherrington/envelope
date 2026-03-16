@@ -1,6 +1,7 @@
-import type { ProviderAccountContext } from "@envelope/core";
+import { ProviderError, type ProviderAccountContext } from "@envelope/core";
 import { appRepository } from "@envelope/db";
-import { decryptFromStorage } from "./secrets";
+import { gmailAdapter } from "@envelope/providers-gmail";
+import { decryptFromStorage, encryptForStorage } from "./secrets";
 
 export const loadGmailOauthConfig = async () => {
   const config = await appRepository.getOAuthClientConfig("gmail");
@@ -40,4 +41,55 @@ export const loadAccountProviderContext = async (
       expiresAt: account.tokenExpiresAt.toISOString(),
     },
   };
+};
+
+export const ensureFreshAccountProviderContext = async (
+  accountId: string,
+): Promise<ProviderAccountContext> => {
+  const context = await loadAccountProviderContext(accountId);
+  const expiresSoon = new Date(context.tokens.expiresAt).getTime() <= Date.now() + 2 * 60 * 1000;
+  if (!expiresSoon) {
+    return context;
+  }
+
+  try {
+    const refreshed = await gmailAdapter.auth.refreshAccessToken({
+      oauthConfig: context.oauthConfig,
+      refreshToken: context.tokens.refreshToken,
+    });
+
+    await appRepository.updateAccountTokens({
+      accountId,
+      encryptedAccessToken: encryptForStorage(refreshed.accessToken),
+      tokenExpiresAt: new Date(refreshed.expiresAt),
+    });
+
+    await appRepository.setAccountStatus({
+      accountId,
+      status: "ok",
+      lastErrorCode: null,
+      lastErrorMessage: null,
+      backoffUntil: null,
+    });
+
+    return {
+      ...context,
+      tokens: {
+        ...context.tokens,
+        accessToken: refreshed.accessToken,
+        expiresAt: refreshed.expiresAt,
+      },
+    };
+  } catch (error) {
+    if (error instanceof ProviderError && error.code === "AUTH_REVOKED") {
+      await appRepository.setAccountStatus({
+        accountId,
+        status: "needs_reauth",
+        lastErrorCode: error.code,
+        lastErrorMessage: error.message,
+      });
+    }
+
+    throw error;
+  }
 };

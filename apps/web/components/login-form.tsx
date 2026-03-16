@@ -1,10 +1,12 @@
 "use client";
 
+import { startAuthentication } from "@simplewebauthn/browser";
 import { useState } from "react";
 import { withCsrfHeaders } from "@/lib/client/csrf";
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
 
   return (
     <form
@@ -55,6 +57,8 @@ export function LoginForm() {
           name="email"
           type="email"
           required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
         />
       </div>
@@ -91,6 +95,61 @@ export function LoginForm() {
         className="rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
       >
         Sign in
+      </button>
+
+      <button
+        type="button"
+        onClick={async () => {
+          setError(null);
+          if (!email) {
+            setError("Enter your email to use passkey sign in");
+            return;
+          }
+
+          try {
+            const optionsResponse = await fetch("/api/auth/passkey/login/options", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email }),
+            });
+
+            if (!optionsResponse.ok) {
+              const payload = (await optionsResponse.json()) as { error?: string };
+              throw new Error(payload.error ?? "Failed to start passkey login");
+            }
+
+            const optionsPayload = (await optionsResponse.json()) as {
+              options: Parameters<typeof startAuthentication>[0]["optionsJSON"];
+            };
+
+            const authenticationResponse = await startAuthentication({
+              optionsJSON: optionsPayload.options,
+            });
+
+            const verifyResponse = await fetch(
+              "/api/auth/passkey/login/verify",
+              withCsrfHeaders({
+                method: "POST",
+                body: JSON.stringify({
+                  email,
+                  response: authenticationResponse,
+                }),
+              }),
+            );
+
+            if (!verifyResponse.ok) {
+              const payload = (await verifyResponse.json()) as { error?: string };
+              throw new Error(payload.error ?? "Passkey verification failed");
+            }
+
+            window.location.href = "/inbox";
+          } catch (caught) {
+            setError(caught instanceof Error ? caught.message : "Passkey sign in failed");
+          }
+        }}
+        className="rounded-lg border border-stone-700 bg-stone-950 px-4 py-2 text-sm font-medium text-stone-200"
+      >
+        Sign in with passkey
       </button>
     </form>
   );

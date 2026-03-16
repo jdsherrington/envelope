@@ -1,0 +1,3337 @@
+{
+  "sources": {
+    "apiRouteRoot": "apps/web/app/api",
+    "envSources": [
+      ".env.example",
+      "apps/web/lib/server/env.ts",
+      "apps/worker/src/env.ts"
+    ],
+    "commandSources": [
+      "apps/web/lib/client/commands/inbox-commands.ts",
+      "apps/web/lib/client/commands/keybinding-manager.ts"
+    ],
+    "dataModelSources": [
+      "packages/db/src/schema.ts",
+      "packages/db/src/repositories/app-repository.ts"
+    ]
+  },
+  "apiRoutes": [
+    {
+      "filePath": "apps/web/app/api/accounts/[id]/reconnect/route.ts",
+      "routePath": "/api/accounts/[id]/reconnect",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Account connection lifecycle endpoints (start OAuth, reconnect, remove).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/accounts/[id]/remove/route.ts",
+      "routePath": "/api/accounts/[id]/remove",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Account connection lifecycle endpoints (start OAuth, reconnect, remove).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/accounts/gmail/start/route.ts",
+      "routePath": "/api/accounts/gmail/start",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Account connection lifecycle endpoints (start OAuth, reconnect, remove).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/archive/route.ts",
+      "routePath": "/api/actions/archive",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/delete/route.ts",
+      "routePath": "/api/actions/delete",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/draft/create/route.ts",
+      "routePath": "/api/actions/draft/create",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/draft/send/route.ts",
+      "routePath": "/api/actions/draft/send",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/draft/update/route.ts",
+      "routePath": "/api/actions/draft/update",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/label/add/route.ts",
+      "routePath": "/api/actions/label/add",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/label/remove/route.ts",
+      "routePath": "/api/actions/label/remove",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/mark-read/route.ts",
+      "routePath": "/api/actions/mark-read",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/mark-unread/route.ts",
+      "routePath": "/api/actions/mark-unread",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/reminder/route.ts",
+      "routePath": "/api/actions/reminder",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/send/route.ts",
+      "routePath": "/api/actions/send",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/send-later/route.ts",
+      "routePath": "/api/actions/send-later",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/send/undo/route.ts",
+      "routePath": "/api/actions/send/undo",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/snooze/route.ts",
+      "routePath": "/api/actions/snooze",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/spam/route.ts",
+      "routePath": "/api/actions/spam",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/actions/trash/route.ts",
+      "routePath": "/api/actions/trash",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Executes mailbox actions (thread mutations, compose, scheduling, or reminders).",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/gmail/callback/route.ts",
+      "routePath": "/api/auth/gmail/callback",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Authentication and session lifecycle operations.",
+      "auth": "optional",
+      "csrf": "not-required",
+      "notes": []
+    },
+    {
+      "filePath": "apps/web/app/api/auth/login/route.ts",
+      "routePath": "/api/auth/login",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Authentication and session lifecycle operations.",
+      "auth": "optional",
+      "csrf": "not-required",
+      "notes": [
+        "Enforces same-origin request checks."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/logout/route.ts",
+      "routePath": "/api/auth/logout",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Authentication and session lifecycle operations.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/passkey/login/options/route.ts",
+      "routePath": "/api/auth/passkey/login/options",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Passkey registration/login challenge and verification endpoints.",
+      "auth": "optional",
+      "csrf": "not-required",
+      "notes": [
+        "Enforces same-origin request checks."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/passkey/login/verify/route.ts",
+      "routePath": "/api/auth/passkey/login/verify",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Passkey registration/login challenge and verification endpoints.",
+      "auth": "optional",
+      "csrf": "not-required",
+      "notes": [
+        "Enforces same-origin request checks."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/passkey/register/options/route.ts",
+      "routePath": "/api/auth/passkey/register/options",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Passkey registration/login challenge and verification endpoints.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/auth/passkey/register/verify/route.ts",
+      "routePath": "/api/auth/passkey/register/verify",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Passkey registration/login challenge and verification endpoints.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/commands/events/route.ts",
+      "routePath": "/api/commands/events",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Command execution telemetry ingestion.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/diagnostics/route.ts",
+      "routePath": "/api/diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "API endpoint for Envelope web application behavior.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/diagnostics/export/route.ts",
+      "routePath": "/api/diagnostics/export",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Diagnostics export, queue/health telemetry, and recovery actions.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/diagnostics/jobs/[jobId]/retry/route.ts",
+      "routePath": "/api/diagnostics/jobs/[jobId]/retry",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Diagnostics export, queue/health telemetry, and recovery actions.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/diagnostics/logs/route.ts",
+      "routePath": "/api/diagnostics/logs",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Diagnostics export, queue/health telemetry, and recovery actions.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/diagnostics/quota/route.ts",
+      "routePath": "/api/diagnostics/quota",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Diagnostics export, queue/health telemetry, and recovery actions.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/inbox/route.ts",
+      "routePath": "/api/inbox",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Inbox thread list retrieval for selected account.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/labels/route.ts",
+      "routePath": "/api/labels",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Label list retrieval for selected account.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/messages/[messageId]/attachments/[attachmentId]/route.ts",
+      "routePath": "/api/messages/[messageId]/attachments/[attachmentId]",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Message body/attachment retrieval endpoints.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/messages/[messageId]/body/route.ts",
+      "routePath": "/api/messages/[messageId]/body",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Message body/attachment retrieval endpoints.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/perf/events/route.ts",
+      "routePath": "/api/perf/events",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "API endpoint for Envelope web application behavior.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/search/route.ts",
+      "routePath": "/api/search",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Inbox thread search for active account.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/settings/route.ts",
+      "routePath": "/api/settings",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "purpose": "User settings retrieval and updates.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/setup/create-user/route.ts",
+      "routePath": "/api/setup/create-user",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Instance bootstrap endpoints for initial user and Gmail OAuth configuration.",
+      "auth": "optional",
+      "csrf": "not-required",
+      "notes": [
+        "Enforces same-origin request checks."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/setup/gmail-config/route.ts",
+      "routePath": "/api/setup/gmail-config",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Instance bootstrap endpoints for initial user and Gmail OAuth configuration.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/snippets/route.ts",
+      "routePath": "/api/snippets",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "purpose": "Snippet and template retrieval.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/sync/progress/route.ts",
+      "routePath": "/api/sync/progress",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Manual sync triggers and sync progress polling.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/sync/refresh/route.ts",
+      "routePath": "/api/sync/refresh",
+      "methods": [
+        "POST"
+      ],
+      "purpose": "Manual sync triggers and sync progress polling.",
+      "auth": "required",
+      "csrf": "required",
+      "notes": [
+        "Uses runMutationRoute wrapper (session + CSRF guard)."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/templates/route.ts",
+      "routePath": "/api/templates",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "API endpoint for Envelope web application behavior.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    },
+    {
+      "filePath": "apps/web/app/api/thread/[threadId]/route.ts",
+      "routePath": "/api/thread/[threadId]",
+      "methods": [
+        "GET"
+      ],
+      "purpose": "Thread detail retrieval.",
+      "auth": "required",
+      "csrf": "not-required",
+      "notes": [
+        "Uses explicit per-route authentication guard."
+      ]
+    }
+  ],
+  "envVars": [
+    {
+      "name": "APP_ORIGIN",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "http://localhost:3000",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "http://localhost:3000",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "APP_VERSION",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "dev",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "dev",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "DATABASE_URL",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "postgres://envelope:envelope@postgres:5432/envelope",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "postgres://envelope:envelope@localhost:5432/envelope",
+          "source": "apps/web/lib/server/env.ts"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "postgres://envelope:envelope@localhost:5432/envelope",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "ENVELOPE_SECRETS_KEY",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "REPLACE_WITH_BASE64_32_BYTE_KEY",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "source": "apps/web/lib/server/env.ts"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "GMAIL_SCOPES",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "NODE_ENV",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "development",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "development",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "SESSION_COOKIE_NAME",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "envelope_session",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "envelope_session",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "SESSION_TTL_HOURS",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "24",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "24",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "SYNC_POLL_MS",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "45000",
+          "source": ".env.example"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "45000",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "WEBAUTHN_RP_ID",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "localhost",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": null,
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "WEBAUTHN_RP_NAME",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "Envelope",
+          "source": ".env.example"
+        },
+        {
+          "surface": "web",
+          "required": false,
+          "defaultValue": "Envelope",
+          "source": "apps/web/lib/server/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "WORKER_HEARTBEAT_MS",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "30000",
+          "source": ".env.example"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "30000",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "WORKER_POLL_MS",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "5000",
+          "source": ".env.example"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "5000",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    },
+    {
+      "name": "WORKER_VERSION",
+      "surfaces": [
+        {
+          "surface": "env-example",
+          "required": true,
+          "defaultValue": "dev",
+          "source": ".env.example"
+        },
+        {
+          "surface": "worker",
+          "required": false,
+          "defaultValue": "dev",
+          "source": "apps/worker/src/env.ts"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "id": "account.switch",
+      "title": "Switch account",
+      "category": "Account",
+      "scope": [
+        "inbox",
+        "global"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "compose.new",
+      "title": "Compose new message",
+      "category": "Compose",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "c",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "diag.exportDiagnostics",
+      "title": "Export diagnostics JSON",
+      "category": "Diagnostics",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "diag.openLogs",
+      "title": "Open diagnostics logs",
+      "category": "Diagnostics",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "diag.showQuota",
+      "title": "Open diagnostics",
+      "category": "Diagnostics",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "g d",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "label.addToSelected",
+      "title": "Add label to selected",
+      "category": "Label",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "label.removeFromSelected",
+      "title": "Remove label from selected",
+      "category": "Label",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "nav.goInbox",
+      "title": "Go to Inbox",
+      "category": "Navigation",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "g i",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "nav.openSettings",
+      "title": "Open settings",
+      "category": "Navigation",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "g s",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "search.open",
+      "title": "Focus search",
+      "category": "Navigation",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "/",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "sync.refresh",
+      "title": "Refresh account sync",
+      "category": "Diagnostics",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "cmd+r",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.archiveSelected",
+      "title": "Archive selected",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "e",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.deleteSelected",
+      "title": "Delete selected permanently",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.markReadSelected",
+      "title": "Mark selected read",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "shift+r",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.markUnreadSelected",
+      "title": "Mark selected unread",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "u",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.openSelected",
+      "title": "Open selected thread",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "enter",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.selectNext",
+      "title": "Select next thread",
+      "category": "Navigation",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "arrowdown",
+          "keymap": null
+        },
+        {
+          "sequence": "j",
+          "keymap": "vim"
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.selectPrevious",
+      "title": "Select previous thread",
+      "category": "Navigation",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "arrowup",
+          "keymap": null
+        },
+        {
+          "sequence": "k",
+          "keymap": "vim"
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.setReminderSelected",
+      "title": "Set reminder on selected",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.snoozeSelected",
+      "title": "Snooze selected",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.spamSelected",
+      "title": "Mark selected as spam",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "thread.trashSelected",
+      "title": "Move selected to trash",
+      "category": "Thread",
+      "scope": [
+        "inbox"
+      ],
+      "keybindings": [
+        {
+          "sequence": "#",
+          "keymap": null
+        }
+      ],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "ui.toggleContrast",
+      "title": "Toggle high contrast",
+      "category": "Settings",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "ui.toggleDensity",
+      "title": "Toggle density",
+      "category": "Settings",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "ui.toggleTheme",
+      "title": "Toggle theme",
+      "category": "Settings",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    },
+    {
+      "id": "ui.toggleVimMode",
+      "title": "Toggle vim keymap",
+      "category": "Settings",
+      "scope": [
+        "global",
+        "inbox"
+      ],
+      "keybindings": [],
+      "source": "apps/web/lib/client/commands/inbox-commands.ts"
+    }
+  ],
+  "dataModel": {
+    "enums": [
+      {
+        "symbol": "accountStatusEnum",
+        "dbName": "account_status",
+        "values": [
+          "ok",
+          "syncing",
+          "rate_limited",
+          "needs_reauth",
+          "error"
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "jobStatusEnum",
+        "dbName": "job_status",
+        "values": [
+          "pending",
+          "running",
+          "succeeded",
+          "failed",
+          "dead"
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "labelTypeEnum",
+        "dbName": "label_type",
+        "values": [
+          "system",
+          "user"
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "messageBodyStateEnum",
+        "dbName": "message_body_state",
+        "values": [
+          "deferred",
+          "present",
+          "failed"
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "snippetKindEnum",
+        "dbName": "snippet_kind",
+        "values": [
+          "snippet",
+          "template"
+        ],
+        "source": "packages/db/src/schema.ts"
+      }
+    ],
+    "tables": [
+      {
+        "symbol": "accounts",
+        "dbName": "accounts",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "email",
+            "type": "varchar",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "status",
+            "type": "enum:account_status",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "encryptedAccessToken",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "encryptedRefreshToken",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "tokenExpiresAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "syncCursor",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastSyncedAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "backoffUntil",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorCode",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorMessage",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "attachmentCache",
+        "dbName": "attachment_cache",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerMessageId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "providerAttachmentId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "filename",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "mimeType",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "sizeBytes",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "bytesBase64",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "commandEvents",
+        "dbName": "command_events",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "commandId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "commandVersion",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "viewScope",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "selectionCount",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "durationMs",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "errorMessage",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "drafts",
+        "dbName": "drafts",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerDraftId",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "providerThreadId",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "toRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "ccRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "bccRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "subject",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "textBody",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "htmlBody",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "sendLaterAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastProviderMessageId",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastProviderThreadId",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "jobs",
+        "dbName": "jobs",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "type",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "payload",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "status",
+            "type": "enum:job_status",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "runAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "attempt",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "maxAttempts",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "retryAfterMs",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorCode",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorMessage",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "idempotencyKey",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "labels",
+        "dbName": "labels",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerLabelId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "type",
+            "type": "enum:label_type",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "colorBackground",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "colorText",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "logEvents",
+        "dbName": "log_events",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "level",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "scope",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "message",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "metadata",
+            "type": "jsonb",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "loginRateLimits",
+        "dbName": "login_rate_limits",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "attemptCount",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "windowStartedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "blockedUntil",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "messages",
+        "dbName": "messages",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerMessageId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "providerThreadId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "fromName",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "fromEmail",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "toRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "ccRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "bccRecipients",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "subject",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "internalDate",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "snippet",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "textBody",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "htmlBody",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "bodyState",
+            "type": "enum:message_body_state",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "isRead",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "isStarred",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "isDraft",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "attachments",
+            "type": "jsonb",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "oauthClientConfigs",
+        "dbName": "oauth_client_configs",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "providerId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "encryptedClientId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "encryptedClientSecret",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "redirectUri",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "scopes",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "oauthStates",
+        "dbName": "oauth_states",
+        "fields": [
+          {
+            "name": "state",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "codeVerifier",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "expiresAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "passkeyChallenges",
+        "dbName": "passkey_challenges",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "flow",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "challenge",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "expiresAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "passkeyCredentials",
+        "dbName": "passkey_credentials",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "credentialId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "publicKey",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "counter",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "backedUp",
+            "type": "boolean",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "transports",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "deviceType",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "perfEvents",
+        "dbName": "perf_events",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "route",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "metric",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "valueMs",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "metadata",
+            "type": "jsonb",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "quotaEvents",
+        "dbName": "quota_events",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "windowLabel",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "used",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "limit",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "backoffUntil",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "errorCode",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "errorMessage",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "quotaRollups",
+        "dbName": "quota_rollups",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "bucketType",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "bucketStart",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "requestCount",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "reminders",
+        "dbName": "reminders",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "threadId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "remindAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "note",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "sessions",
+        "dbName": "sessions",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "tokenHash",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "csrfToken",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "expiresAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "snippets",
+        "dbName": "snippets",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "kind",
+            "type": "enum:snippet_kind",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "body",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "syncState",
+        "dbName": "sync_state",
+        "fields": [
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "cursorRaw",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastRunAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "backoffUntil",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorCode",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastErrorMessage",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "initialSyncInProgress",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "initialSyncPhase",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "initialSyncTarget",
+            "type": "integer",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "initialSyncProcessed",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "initialSyncStartedAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "initialSyncCompletedAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "threadLabels",
+        "dbName": "thread_labels",
+        "fields": [
+          {
+            "name": "threadId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "labelId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "threads",
+        "dbName": "threads",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "accountId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "providerThreadId",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "subject",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "snippet",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "lastMessageAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "unreadCount",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "providerLabelIds",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "totpFactors",
+        "dbName": "totp_factors",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "encryptedSecret",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "isVerified",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "verifiedAt",
+            "type": "timestamp",
+            "nullable": true,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "userSettings",
+        "dbName": "user_settings",
+        "fields": [
+          {
+            "name": "userId",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": true,
+            "hasDefault": false
+          },
+          {
+            "name": "theme",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "density",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "keymap",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "contrast",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "hideRareLabels",
+            "type": "boolean",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "users",
+        "dbName": "users",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "email",
+            "type": "varchar",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "passwordHash",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "createdAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      },
+      {
+        "symbol": "workerHeartbeats",
+        "dbName": "worker_heartbeats",
+        "fields": [
+          {
+            "name": "workerId",
+            "type": "text",
+            "nullable": true,
+            "primaryKey": true,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "host",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "pid",
+            "type": "integer",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "version",
+            "type": "text",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "timestamp",
+            "nullable": false,
+            "primaryKey": false,
+            "referencesOtherTable": false,
+            "hasDefault": true
+          }
+        ],
+        "source": "packages/db/src/schema.ts"
+      }
+    ]
+  }
+}

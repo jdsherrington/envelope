@@ -8,25 +8,32 @@ type SetupFlowProps = {
   initialTotpSecret: string;
   otpAuthUri: string;
   defaultRedirectUri: string;
+  initialStep?: "user" | "gmail";
 };
 
 export function SetupFlow({
   initialTotpSecret,
   otpAuthUri,
   defaultRedirectUri,
+  initialStep = "user",
 }: SetupFlowProps) {
-  const [step, setStep] = useState<"user" | "gmail" | "done">("user");
+  const [step, setStep] = useState<"user" | "gmail" | "done">(initialStep);
   const [totpSecret] = useState(initialTotpSecret);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isGmailOnlyFlow = initialStep === "gmail";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-4 py-8">
       <header className="mb-8">
         <p className="text-xs uppercase text-stone-500">Envelope setup</p>
-        <h1 className="mt-2 text-4xl font-semibold text-balance">Bootstrap your instance</h1>
+        <h1 className="mt-2 text-4xl font-semibold text-balance">
+          {isGmailOnlyFlow ? "Finish Gmail setup" : "Bootstrap your instance"}
+        </h1>
         <p className="mt-2 max-w-2xl text-stone-400 text-pretty">
-          Create your local admin account with mandatory TOTP, then provide Gmail OAuth credentials.
+          {isGmailOnlyFlow
+            ? "Your admin account already exists. Add Gmail OAuth credentials so Envelope can connect to Gmail."
+            : "Create your local admin account with mandatory TOTP, then provide Gmail OAuth credentials."}
         </p>
       </header>
 
@@ -102,9 +109,9 @@ export function SetupFlow({
                 name="password"
                 type="password"
                 required
-                minLength={12}
+                minLength={8}
                 className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
-                placeholder="At least 12 characters"
+                placeholder="At least 8 characters"
               />
             </div>
 
@@ -173,7 +180,37 @@ export function SetupFlow({
               setStatus("Setup complete. Continue to inbox and connect Gmail account.");
             }}
           >
-            <h2 className="text-2xl font-medium text-balance">2. Configure Gmail OAuth</h2>
+            <h2 className="text-2xl font-medium text-balance">
+              {isGmailOnlyFlow ? "Configure Gmail OAuth" : "2. Configure Gmail OAuth"}
+            </h2>
+            <div className="rounded-xl border border-stone-700 bg-stone-950/70 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300">
+                How to get these values
+              </h3>
+              <ol className="mt-3 grid gap-2 text-sm text-stone-300">
+                <li>
+                  1. Open{" "}
+                  <Link
+                    href="https://console.cloud.google.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-amber-300 underline decoration-amber-500/50 underline-offset-4"
+                  >
+                    Google Cloud Console
+                  </Link>{" "}
+                  and choose or create a project for Envelope.
+                </li>
+                <li>2. Enable the Gmail API for that project.</li>
+                <li>3. Configure the OAuth consent screen if Google asks for it.</li>
+                <li>4. Create an OAuth client ID for a Web application.</li>
+                <li>5. Add the redirect URI shown below to the client configuration.</li>
+                <li>6. Copy the generated client ID and client secret into this form.</li>
+              </ol>
+              <p className="mt-3 text-xs text-stone-500 text-pretty">
+                Use the same host here and in Google Cloud. If they do not match exactly, Gmail
+                connect will fail on callback.
+              </p>
+            </div>
 
             <div className="grid gap-1">
               <label htmlFor="clientId" className="text-sm text-stone-300">
@@ -211,6 +248,10 @@ export function SetupFlow({
                 defaultValue={defaultRedirectUri}
                 className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 font-mono text-xs"
               />
+              <p className="text-xs text-stone-500 text-pretty">
+                Paste this exact URI into the Authorized redirect URIs field for your Google OAuth
+                client.
+              </p>
             </div>
 
             <button

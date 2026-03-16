@@ -28,3 +28,28 @@ p {
 kbd {
   @apply tabular-nums;
 }
+
+:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.envelope-contrast-high {
+  color: #ffffff;
+}
+
+.envelope-contrast-high a {
+  color: #fcd34d !important;
+}
+
+.envelope-contrast-high [class*="border-stone-"] {
+  border-color: #ffffff !important;
+}
+
+.envelope-contrast-high [class*="text-stone-"] {
+  color: #ffffff !important;
+}
+
+.envelope-contrast-high [class*="bg-stone-"] {
+  background-color: #000000 !important;
+}

@@ -69,6 +69,9 @@ export class CommandRegistry {
         if (normalizeSequence(keybinding.sequence) !== normalized) {
           continue;
         }
+        if (keybinding.keymap && keybinding.keymap !== "all" && keybinding.keymap !== ctx.ui.keymap) {
+          continue;
+        }
         if (keybinding.when && !keybinding.when(ctx)) {
           continue;
         }

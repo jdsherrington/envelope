@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import type {
   CanonicalLabel,
   CanonicalMessage,
@@ -7,6 +7,9 @@ import type {
 } from "@envelope/core";
 import { db } from "../client";
 import {
+  attachmentCache,
+  commandEvents,
+  drafts,
   accounts,
   jobs,
   labels,
@@ -14,15 +17,30 @@ import {
   messages,
   oauthClientConfigs,
   oauthStates,
+  passkeyChallenges,
+  passkeyCredentials,
   quotaEvents,
+  quotaRollups,
+  perfEvents,
+  reminders,
+  logEvents,
+  workerHeartbeats,
   sessions,
+  snippets,
   syncState,
   threads,
   totpFactors,
+  userSettings,
   users,
 } from "../schema";
 
 const now = () => new Date();
+
+const minuteBucket = (at: Date): Date =>
+  new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), at.getUTCHours(), at.getUTCMinutes(), 0, 0));
+
+const dayBucket = (at: Date): Date =>
+  new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 0, 0, 0, 0));
 
 export const appRepository = {
   async hasUsers(): Promise<boolean> {
@@ -54,6 +72,61 @@ export const appRepository = {
   async getUserById(userId: string) {
     const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     return row ?? null;
+  },
+
+  async getUserSettings(userId: string) {
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
+
+    return (
+      settings ?? {
+        userId,
+        theme: "dark",
+        density: "comfortable",
+        keymap: "superhuman",
+        contrast: "standard",
+        hideRareLabels: true,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+    );
+  },
+
+  async upsertUserSettings(args: {
+    userId: string;
+    theme?: "dark" | "light";
+    density?: "comfortable" | "compact";
+    keymap?: "superhuman" | "vim";
+    contrast?: "standard" | "high";
+    hideRareLabels?: boolean;
+  }) {
+    const existing = await this.getUserSettings(args.userId);
+    const next = {
+      theme: args.theme ?? existing.theme,
+      density: args.density ?? existing.density,
+      keymap: args.keymap ?? existing.keymap,
+      contrast: args.contrast ?? existing.contrast,
+      hideRareLabels: args.hideRareLabels ?? existing.hideRareLabels,
+    };
+
+    await db
+      .insert(userSettings)
+      .values({
+        userId: args.userId,
+        ...next,
+      })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: {
+          ...next,
+          updatedAt: now(),
+        },
+      });
+
+    return this.getUserSettings(args.userId);
   },
 
   async setTotpFactor(args: { userId: string; encryptedSecret: string; isVerified: boolean }) {
@@ -91,6 +164,115 @@ export const appRepository = {
   async getTotpFactor(userId: string) {
     const [row] = await db.select().from(totpFactors).where(eq(totpFactors.userId, userId)).limit(1);
     return row ?? null;
+  },
+
+  async upsertPasskeyChallenge(args: {
+    userId: string;
+    flow: "register" | "login";
+    challenge: string;
+    expiresAt: Date;
+  }) {
+    await db
+      .insert(passkeyChallenges)
+      .values({
+        userId: args.userId,
+        flow: args.flow,
+        challenge: args.challenge,
+        expiresAt: args.expiresAt,
+      })
+      .onConflictDoUpdate({
+        target: [passkeyChallenges.userId, passkeyChallenges.flow],
+        set: {
+          challenge: args.challenge,
+          expiresAt: args.expiresAt,
+          createdAt: now(),
+        },
+      });
+  },
+
+  async consumePasskeyChallenge(args: { userId: string; flow: "register" | "login" }) {
+    const [challenge] = await db
+      .select()
+      .from(passkeyChallenges)
+      .where(and(eq(passkeyChallenges.userId, args.userId), eq(passkeyChallenges.flow, args.flow)))
+      .limit(1);
+
+    if (!challenge) {
+      return null;
+    }
+
+    await db
+      .delete(passkeyChallenges)
+      .where(and(eq(passkeyChallenges.userId, args.userId), eq(passkeyChallenges.flow, args.flow)));
+
+    if (challenge.expiresAt < now()) {
+      return null;
+    }
+
+    return challenge;
+  },
+
+  async listPasskeysForUser(userId: string) {
+    return db
+      .select()
+      .from(passkeyCredentials)
+      .where(eq(passkeyCredentials.userId, userId))
+      .orderBy(desc(passkeyCredentials.updatedAt));
+  },
+
+  async getPasskeyByCredentialId(credentialId: string) {
+    const [credential] = await db
+      .select()
+      .from(passkeyCredentials)
+      .where(eq(passkeyCredentials.credentialId, credentialId))
+      .limit(1);
+    return credential ?? null;
+  },
+
+  async upsertPasskeyCredential(args: {
+    userId: string;
+    credentialId: string;
+    publicKey: string;
+    counter: number;
+    backedUp?: boolean;
+    transports?: string[];
+    deviceType?: string;
+    name?: string;
+  }) {
+    await db
+      .insert(passkeyCredentials)
+      .values({
+        userId: args.userId,
+        credentialId: args.credentialId,
+        publicKey: args.publicKey,
+        counter: args.counter,
+        backedUp: args.backedUp,
+        transports: args.transports ?? [],
+        deviceType: args.deviceType,
+        name: args.name,
+      })
+      .onConflictDoUpdate({
+        target: passkeyCredentials.credentialId,
+        set: {
+          publicKey: args.publicKey,
+          counter: args.counter,
+          backedUp: args.backedUp,
+          transports: args.transports ?? [],
+          deviceType: args.deviceType,
+          name: args.name,
+          updatedAt: now(),
+        },
+      });
+  },
+
+  async updatePasskeyCounter(credentialId: string, counter: number) {
+    await db
+      .update(passkeyCredentials)
+      .set({
+        counter,
+        updatedAt: now(),
+      })
+      .where(eq(passkeyCredentials.credentialId, credentialId));
   },
 
   async createSession(args: {
@@ -305,6 +487,9 @@ export const appRepository = {
         providerId: accounts.providerId,
         status: accounts.status,
         lastSyncedAt: accounts.lastSyncedAt,
+        backoffUntil: accounts.backoffUntil,
+        lastErrorCode: accounts.lastErrorCode,
+        lastErrorMessage: accounts.lastErrorMessage,
       })
       .from(accounts)
       .where(eq(accounts.userId, userId))
@@ -322,7 +507,7 @@ export const appRepository = {
       .from(accounts)
       .where(
         and(
-          inArray(accounts.status, ["ok", "syncing", "rate_limited"]),
+          inArray(accounts.status, ["ok", "rate_limited"]),
           sql`${accounts.syncCursor} is not null`,
           sql`${accounts.backoffUntil} is null or ${accounts.backoffUntil} <= now()`,
         ),
@@ -461,6 +646,7 @@ export const appRepository = {
           snippet: row.snippet,
           textBody: row.textBody,
           htmlBody: row.htmlBody,
+          bodyState: row.textBody || row.htmlBody ? "present" : "deferred",
           isRead: row.flags.isRead,
           isStarred: row.flags.isStarred ?? false,
           isDraft: row.flags.isDraft ?? false,
@@ -480,6 +666,7 @@ export const appRepository = {
             snippet: row.snippet,
             textBody: row.textBody,
             htmlBody: row.htmlBody,
+            ...(row.textBody || row.htmlBody ? { bodyState: "present" as const } : {}),
             isRead: row.flags.isRead,
             isStarred: row.flags.isStarred ?? false,
             isDraft: row.flags.isDraft ?? false,
@@ -508,6 +695,74 @@ export const appRepository = {
       .where(and(eq(messages.accountId, accountId), inArray(messages.providerMessageId, providerMessageIds)));
   },
 
+  async startInitialSyncProgress(args: {
+    accountId: string;
+    phase?: string;
+    target?: number;
+  }) {
+    await db
+      .insert(syncState)
+      .values({
+        accountId: args.accountId,
+        initialSyncInProgress: true,
+        initialSyncPhase: args.phase ?? "initializing",
+        initialSyncTarget: args.target,
+        initialSyncProcessed: 0,
+        initialSyncStartedAt: now(),
+        initialSyncCompletedAt: null,
+        lastRunAt: now(),
+      })
+      .onConflictDoUpdate({
+        target: syncState.accountId,
+        set: {
+          initialSyncInProgress: true,
+          initialSyncPhase: args.phase ?? "initializing",
+          initialSyncTarget: args.target,
+          initialSyncProcessed: 0,
+          initialSyncStartedAt: now(),
+          initialSyncCompletedAt: null,
+          lastRunAt: now(),
+          updatedAt: now(),
+        },
+      });
+
+    await this.setAccountStatus({ accountId: args.accountId, status: "syncing" });
+  },
+
+  async updateInitialSyncProgress(args: {
+    accountId: string;
+    phase?: string;
+    processed?: number;
+    target?: number;
+  }) {
+    const [existing] = await db
+      .select()
+      .from(syncState)
+      .where(eq(syncState.accountId, args.accountId))
+      .limit(1);
+
+    if (!existing) {
+      await this.startInitialSyncProgress({
+        accountId: args.accountId,
+        phase: args.phase,
+        target: args.target,
+      });
+      return;
+    }
+
+    await db
+      .update(syncState)
+      .set({
+        initialSyncInProgress: true,
+        initialSyncPhase: args.phase ?? existing.initialSyncPhase ?? "running",
+        initialSyncProcessed: args.processed ?? existing.initialSyncProcessed,
+        initialSyncTarget: args.target ?? existing.initialSyncTarget,
+        lastRunAt: now(),
+        updatedAt: now(),
+      })
+      .where(eq(syncState.accountId, args.accountId));
+  },
+
   async updateSyncCursor(accountId: string, cursorRaw: string) {
     await db
       .insert(syncState)
@@ -515,12 +770,18 @@ export const appRepository = {
         accountId,
         cursorRaw,
         lastRunAt: now(),
+        initialSyncInProgress: false,
+        initialSyncPhase: "completed",
+        initialSyncCompletedAt: now(),
       })
       .onConflictDoUpdate({
         target: syncState.accountId,
         set: {
           cursorRaw,
           lastRunAt: now(),
+          initialSyncInProgress: false,
+          initialSyncPhase: "completed",
+          initialSyncCompletedAt: now(),
           updatedAt: now(),
         },
       });
@@ -534,6 +795,31 @@ export const appRepository = {
         updatedAt: now(),
       })
       .where(eq(accounts.id, accountId));
+  },
+
+  async getSyncProgress(accountId: string) {
+    const [state] = await db
+      .select()
+      .from(syncState)
+      .where(eq(syncState.accountId, accountId))
+      .limit(1);
+
+    if (!state) {
+      return null;
+    }
+
+    return {
+      accountId,
+      inProgress: state.initialSyncInProgress,
+      phase: state.initialSyncPhase,
+      processed: state.initialSyncProcessed,
+      target: state.initialSyncTarget,
+      startedAt: state.initialSyncStartedAt,
+      completedAt: state.initialSyncCompletedAt,
+      lastRunAt: state.lastRunAt,
+      updatedAt: state.updatedAt,
+      cursorRaw: state.cursorRaw,
+    };
   },
 
   async listInboxThreads(args: {
@@ -576,6 +862,46 @@ export const appRepository = {
     }
 
     return rows.filter((row) => row.providerLabelIds.includes(label));
+  },
+
+  async searchThreads(args: {
+    accountId: string;
+    query: string;
+    page: number;
+    pageSize: number;
+  }) {
+    const q = args.query.trim();
+    if (!q) {
+      return this.listInboxThreads({
+        accountId: args.accountId,
+        page: args.page,
+        pageSize: args.pageSize,
+      });
+    }
+
+    const offset = Math.max(args.page - 1, 0) * args.pageSize;
+    const pattern = `%${q}%`;
+
+    return db
+      .select({
+        id: threads.id,
+        providerThreadId: threads.providerThreadId,
+        subject: threads.subject,
+        snippet: threads.snippet,
+        lastMessageAt: threads.lastMessageAt,
+        unreadCount: threads.unreadCount,
+        providerLabelIds: threads.providerLabelIds,
+      })
+      .from(threads)
+      .where(
+        and(
+          eq(threads.accountId, args.accountId),
+          or(ilike(threads.subject, pattern), ilike(threads.snippet, pattern)),
+        ),
+      )
+      .orderBy(desc(threads.lastMessageAt))
+      .offset(offset)
+      .limit(args.pageSize);
   },
 
   async getThreadById(threadId: string, accountId: string) {
@@ -621,6 +947,71 @@ export const appRepository = {
 
     for (const thread of targetThreads) {
       const nextLabels = thread.providerLabelIds.filter((label) => label !== "INBOX");
+      await db
+        .update(threads)
+        .set({
+          providerLabelIds: nextLabels,
+          updatedAt: now(),
+        })
+        .where(eq(threads.id, thread.id));
+    }
+  },
+
+  async trashThreads(accountId: string, threadIds: string[]) {
+    const targetThreads = await db
+      .select({ id: threads.id, providerLabelIds: threads.providerLabelIds })
+      .from(threads)
+      .where(and(eq(threads.accountId, accountId), inArray(threads.id, threadIds)));
+
+    for (const thread of targetThreads) {
+      const withoutInbox = thread.providerLabelIds.filter((label) => label !== "INBOX");
+      const nextLabels = [...new Set([...withoutInbox, "TRASH"])];
+      await db
+        .update(threads)
+        .set({
+          providerLabelIds: nextLabels,
+          updatedAt: now(),
+        })
+        .where(eq(threads.id, thread.id));
+    }
+  },
+
+  async deleteThreads(accountId: string, threadIds: string[]) {
+    if (!threadIds.length) {
+      return;
+    }
+
+    const providerRows = await db
+      .select({ providerThreadId: threads.providerThreadId })
+      .from(threads)
+      .where(and(eq(threads.accountId, accountId), inArray(threads.id, threadIds)));
+
+    const providerThreadIds = providerRows.map((row) => row.providerThreadId);
+    if (providerThreadIds.length) {
+      await db
+        .delete(messages)
+        .where(
+          and(
+            eq(messages.accountId, accountId),
+            inArray(messages.providerThreadId, providerThreadIds),
+          ),
+        );
+    }
+
+    await db
+      .delete(threads)
+      .where(and(eq(threads.accountId, accountId), inArray(threads.id, threadIds)));
+  },
+
+  async markThreadsSpam(accountId: string, threadIds: string[]) {
+    const targetThreads = await db
+      .select({ id: threads.id, providerLabelIds: threads.providerLabelIds })
+      .from(threads)
+      .where(and(eq(threads.accountId, accountId), inArray(threads.id, threadIds)));
+
+    for (const thread of targetThreads) {
+      const withoutInbox = thread.providerLabelIds.filter((label) => label !== "INBOX");
+      const nextLabels = [...new Set([...withoutInbox, "SPAM"])];
       await db
         .update(threads)
         .set({
@@ -715,6 +1106,245 @@ export const appRepository = {
     }
   },
 
+  async snoozeThreads(args: { accountId: string; threadIds: string[]; remindAt: Date; note?: string }) {
+    const targetThreads = await db
+      .select({ id: threads.id, providerLabelIds: threads.providerLabelIds })
+      .from(threads)
+      .where(and(eq(threads.accountId, args.accountId), inArray(threads.id, args.threadIds)));
+
+    for (const thread of targetThreads) {
+      const withoutInbox = thread.providerLabelIds.filter((label) => label !== "INBOX");
+      const nextLabels = [...new Set([...withoutInbox, "SNOOZED"])];
+
+      await db
+        .update(threads)
+        .set({
+          providerLabelIds: nextLabels,
+          updatedAt: now(),
+        })
+        .where(eq(threads.id, thread.id));
+
+      await this.upsertReminder({
+        accountId: args.accountId,
+        threadId: thread.id,
+        remindAt: args.remindAt,
+        note: args.note,
+      });
+    }
+  },
+
+  async scheduleReminders(args: {
+    accountId: string;
+    threadIds: string[];
+    remindAt: Date;
+    note?: string;
+  }) {
+    const targetThreads = await db
+      .select({ id: threads.id })
+      .from(threads)
+      .where(and(eq(threads.accountId, args.accountId), inArray(threads.id, args.threadIds)));
+
+    for (const thread of targetThreads) {
+      await this.upsertReminder({
+        accountId: args.accountId,
+        threadId: thread.id,
+        remindAt: args.remindAt,
+        note: args.note,
+      });
+    }
+  },
+
+  async upsertDraft(args: {
+    accountId: string;
+    draftId: string;
+    providerDraftId?: string;
+    providerThreadId?: string;
+    payload: {
+      to: Array<{ name?: string; email: string }>;
+      cc?: Array<{ name?: string; email: string }>;
+      bcc?: Array<{ name?: string; email: string }>;
+      subject: string;
+      textBody?: string;
+      htmlBody?: string;
+    };
+    sendLaterAt?: string;
+  }) {
+    const [existing] = await db
+      .select()
+      .from(drafts)
+      .where(and(eq(drafts.id, args.draftId), eq(drafts.accountId, args.accountId)))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(drafts).values({
+        id: args.draftId,
+        accountId: args.accountId,
+        providerDraftId: args.providerDraftId,
+        providerThreadId: args.providerThreadId,
+        toRecipients: args.payload.to,
+        ccRecipients: args.payload.cc ?? [],
+        bccRecipients: args.payload.bcc ?? [],
+        subject: args.payload.subject,
+        textBody: args.payload.textBody,
+        htmlBody: args.payload.htmlBody,
+        sendLaterAt: args.sendLaterAt ? new Date(args.sendLaterAt) : null,
+        status: "draft",
+      });
+      return;
+    }
+
+    await db
+      .update(drafts)
+      .set({
+        providerDraftId: args.providerDraftId ?? existing.providerDraftId,
+        providerThreadId: args.providerThreadId ?? existing.providerThreadId,
+        toRecipients: args.payload.to,
+        ccRecipients: args.payload.cc ?? [],
+        bccRecipients: args.payload.bcc ?? [],
+        subject: args.payload.subject,
+        textBody: args.payload.textBody,
+        htmlBody: args.payload.htmlBody,
+        sendLaterAt: args.sendLaterAt ? new Date(args.sendLaterAt) : null,
+        updatedAt: now(),
+      })
+      .where(and(eq(drafts.id, args.draftId), eq(drafts.accountId, args.accountId)));
+  },
+
+  async patchDraftProviderMetadata(args: {
+    accountId: string;
+    draftId: string;
+    providerDraftId?: string;
+    providerThreadId?: string;
+    lastProviderMessageId?: string;
+  }) {
+    await db
+      .update(drafts)
+      .set({
+        providerDraftId: args.providerDraftId,
+        providerThreadId: args.providerThreadId,
+        lastProviderMessageId: args.lastProviderMessageId,
+        updatedAt: now(),
+      })
+      .where(and(eq(drafts.id, args.draftId), eq(drafts.accountId, args.accountId)));
+  },
+
+  async markDraftSent(args: {
+    accountId: string;
+    draftId: string;
+    providerMessageId?: string;
+    providerThreadId?: string;
+  }) {
+    await db
+      .update(drafts)
+      .set({
+        status: "sent",
+        lastProviderMessageId: args.providerMessageId,
+        lastProviderThreadId: args.providerThreadId,
+        updatedAt: now(),
+      })
+      .where(and(eq(drafts.id, args.draftId), eq(drafts.accountId, args.accountId)));
+  },
+
+  async listSnippets(userId: string) {
+    return db
+      .select()
+      .from(snippets)
+      .where(eq(snippets.userId, userId))
+      .orderBy(asc(snippets.title));
+  },
+
+  async listSnippetsByKind(args: { userId: string; kind: "snippet" | "template" }) {
+    return db
+      .select()
+      .from(snippets)
+      .where(and(eq(snippets.userId, args.userId), eq(snippets.kind, args.kind)))
+      .orderBy(asc(snippets.title));
+  },
+
+  async createSnippet(args: { userId: string; title: string; body: string; kind?: "snippet" | "template" }) {
+    const [row] = await db
+      .insert(snippets)
+      .values({
+        userId: args.userId,
+        kind: args.kind ?? "snippet",
+        title: args.title,
+        body: args.body,
+      })
+      .returning();
+    return row ?? null;
+  },
+
+  async upsertReminder(args: {
+    accountId: string;
+    threadId: string;
+    remindAt: Date;
+    note?: string;
+  }) {
+    await db
+      .insert(reminders)
+      .values({
+        accountId: args.accountId,
+        threadId: args.threadId,
+        remindAt: args.remindAt,
+        note: args.note,
+      })
+      .onConflictDoUpdate({
+        target: [reminders.accountId, reminders.threadId, reminders.remindAt],
+        set: {
+          note: args.note,
+          status: "scheduled",
+          updatedAt: now(),
+        },
+      });
+  },
+
+  async wakeReminderThreads(args: { accountId: string; threadIds?: string[]; nowAt?: Date }) {
+    const nowAt = args.nowAt ?? now();
+
+    const dueReminders = await db
+      .select()
+      .from(reminders)
+      .where(
+        and(
+          eq(reminders.accountId, args.accountId),
+          inArray(reminders.status, ["scheduled"]),
+          lte(reminders.remindAt, nowAt),
+          args.threadIds?.length ? inArray(reminders.threadId, args.threadIds) : sql`true`,
+        ),
+      );
+
+    if (!dueReminders.length) {
+      return;
+    }
+
+    const threadIds = [...new Set(dueReminders.map((entry) => entry.threadId))];
+    const targetThreads = await db
+      .select({ id: threads.id, providerLabelIds: threads.providerLabelIds })
+      .from(threads)
+      .where(and(eq(threads.accountId, args.accountId), inArray(threads.id, threadIds)));
+
+    for (const thread of targetThreads) {
+      const withoutSnoozed = thread.providerLabelIds.filter((label) => label !== "SNOOZED");
+      const nextLabels = [...new Set([...withoutSnoozed, "INBOX"])];
+
+      await db
+        .update(threads)
+        .set({
+          providerLabelIds: nextLabels,
+          updatedAt: now(),
+        })
+        .where(eq(threads.id, thread.id));
+    }
+
+    await db
+      .update(reminders)
+      .set({
+        status: "fired",
+        updatedAt: now(),
+      })
+      .where(and(eq(reminders.accountId, args.accountId), inArray(reminders.id, dueReminders.map((entry) => entry.id))));
+  },
+
   async enqueueJob(args: {
     accountId: string;
     type: string;
@@ -754,6 +1384,39 @@ export const appRepository = {
     }
 
     return { jobId: row.id };
+  },
+
+  async cancelPendingSend(args: { accountId: string; clientMutationId: string }) {
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(
+        and(
+          eq(jobs.accountId, args.accountId),
+          eq(jobs.status, "pending"),
+          inArray(jobs.type, ["gmail.sendMessage", "gmail.sendLater"]),
+          sql`${jobs.payload} ->> 'clientMutationId' = ${args.clientMutationId}`,
+        ),
+      )
+      .orderBy(desc(jobs.createdAt))
+      .limit(1);
+
+    if (!job) {
+      return null;
+    }
+
+    const [updated] = await db
+      .update(jobs)
+      .set({
+        status: "dead",
+        lastErrorCode: "CANCELLED",
+        lastErrorMessage: "Cancelled by user undo-send",
+        updatedAt: now(),
+      })
+      .where(eq(jobs.id, job.id))
+      .returning();
+
+    return updated ?? null;
   },
 
   async takeDueJobs(limit = 20) {
@@ -826,6 +1489,37 @@ export const appRepository = {
       .where(eq(jobs.id, args.jobId));
   },
 
+  async retryDeadJob(args: { jobId: string; accountId: string }) {
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.id, args.jobId), eq(jobs.accountId, args.accountId)))
+      .limit(1);
+
+    if (!job) {
+      return null;
+    }
+
+    if (!(job.status === "dead" || job.status === "failed")) {
+      return job;
+    }
+
+    const [updated] = await db
+      .update(jobs)
+      .set({
+        status: "pending",
+        runAt: now(),
+        retryAfterMs: null,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        updatedAt: now(),
+      })
+      .where(eq(jobs.id, args.jobId))
+      .returning();
+
+    return updated ?? null;
+  },
+
   async listRecentJobs(limit = 50) {
     return db.select().from(jobs).orderBy(desc(jobs.createdAt)).limit(limit);
   },
@@ -859,6 +1553,103 @@ export const appRepository = {
     });
   },
 
+  async incrementQuotaRequestCount(args: { accountId: string; at?: Date; count?: number }) {
+    const at = args.at ?? now();
+    const countDelta = args.count ?? 1;
+    const minuteStart = minuteBucket(at);
+    const dayStart = dayBucket(at);
+
+    for (const bucket of [
+      { type: "minute", start: minuteStart },
+      { type: "day", start: dayStart },
+    ]) {
+      const [existing] = await db
+        .select()
+        .from(quotaRollups)
+        .where(
+          and(
+            eq(quotaRollups.accountId, args.accountId),
+            eq(quotaRollups.bucketType, bucket.type),
+            eq(quotaRollups.bucketStart, bucket.start),
+          ),
+        )
+        .limit(1);
+
+      if (!existing) {
+        await db.insert(quotaRollups).values({
+          accountId: args.accountId,
+          bucketType: bucket.type,
+          bucketStart: bucket.start,
+          requestCount: countDelta,
+        });
+        continue;
+      }
+
+      await db
+        .update(quotaRollups)
+        .set({
+          requestCount: existing.requestCount + countDelta,
+          updatedAt: now(),
+        })
+        .where(eq(quotaRollups.id, existing.id));
+    }
+  },
+
+  async getQuotaSummary(accountId: string) {
+    const cutoff60s = new Date(now().getTime() - 60 * 1000);
+    const todayStart = dayBucket(now());
+
+    const [minuteRequests] = await db
+      .select({ value: sql<number>`coalesce(sum(${quotaRollups.requestCount}), 0)` })
+      .from(quotaRollups)
+      .where(
+        and(
+          eq(quotaRollups.accountId, accountId),
+          eq(quotaRollups.bucketType, "minute"),
+          gte(quotaRollups.bucketStart, cutoff60s),
+        ),
+      );
+
+    const [dailyRequests] = await db
+      .select({ value: sql<number>`coalesce(sum(${quotaRollups.requestCount}), 0)` })
+      .from(quotaRollups)
+      .where(
+        and(
+          eq(quotaRollups.accountId, accountId),
+          eq(quotaRollups.bucketType, "day"),
+          eq(quotaRollups.bucketStart, todayStart),
+        ),
+      );
+
+    const [lastRateLimit] = await db
+      .select()
+      .from(quotaEvents)
+      .where(
+        and(
+          eq(quotaEvents.accountId, accountId),
+          inArray(quotaEvents.errorCode, ["RATE_LIMITED", "PERMISSION_DENIED"]),
+        ),
+      )
+      .orderBy(desc(quotaEvents.recordedAt))
+      .limit(1);
+
+    const account = await this.getAccountById(accountId);
+
+    return {
+      requestsLast60s: Number(minuteRequests?.value ?? 0),
+      dailyEstimate: Number(dailyRequests?.value ?? 0),
+      lastRateLimitEvent: lastRateLimit
+        ? {
+            at: lastRateLimit.recordedAt,
+            code: lastRateLimit.errorCode,
+            message: lastRateLimit.errorMessage,
+          }
+        : null,
+      backoffUntil: account?.backoffUntil ?? null,
+      status: account?.status ?? null,
+    };
+  },
+
   async listQuotaEvents(accountId: string, limit = 50) {
     return db
       .select()
@@ -871,10 +1662,16 @@ export const appRepository = {
   async diagnosticsForUser(userId: string) {
     const userAccounts = await this.listAccountsForUser(userId);
     const recentJobs = await this.listRecentJobs(100);
+    const recentCommandEvents = await this.listCommandEvents(userId, 200);
+    const recentLogs = await this.listLogEvents(userId, 300);
+    const recentPerfEvents = await this.listPerfEvents(userId, 200);
 
     return {
       accounts: userAccounts,
       jobs: recentJobs,
+      commandEvents: recentCommandEvents,
+      logs: recentLogs,
+      perfEvents: recentPerfEvents,
     };
   },
 
@@ -977,11 +1774,13 @@ export const appRepository = {
     textBody?: string;
     htmlBody?: string;
   }) {
+    const hasBody = Boolean(args.textBody || args.htmlBody);
     await db
       .update(messages)
       .set({
         textBody: args.textBody,
         htmlBody: args.htmlBody,
+        bodyState: hasBody ? "present" : "failed",
         updatedAt: now(),
       })
       .where(
@@ -1005,6 +1804,263 @@ export const appRepository = {
       .limit(1);
 
     return message ?? null;
+  },
+
+  async getMessageById(args: { accountId: string; messageId: string }) {
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.accountId, args.accountId), eq(messages.id, args.messageId)))
+      .limit(1);
+    return message ?? null;
+  },
+
+  async getThreadByProviderId(args: { accountId: string; providerThreadId: string }) {
+    const [thread] = await db
+      .select()
+      .from(threads)
+      .where(
+        and(eq(threads.accountId, args.accountId), eq(threads.providerThreadId, args.providerThreadId)),
+      )
+      .limit(1);
+    return thread ?? null;
+  },
+
+  async listMessagesMissingBodies(args: { accountId: string; providerThreadId: string }) {
+    return db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.accountId, args.accountId),
+          eq(messages.providerThreadId, args.providerThreadId),
+          eq(messages.bodyState, "deferred"),
+        ),
+      );
+  },
+
+  async markMessageBodyFetchFailed(args: {
+    accountId: string;
+    providerMessageId: string;
+  }) {
+    await db
+      .update(messages)
+      .set({
+        bodyState: "failed",
+        updatedAt: now(),
+      })
+      .where(
+        and(
+          eq(messages.accountId, args.accountId),
+          eq(messages.providerMessageId, args.providerMessageId),
+        ),
+      );
+  },
+
+  async getAttachmentCache(args: {
+    accountId: string;
+    providerMessageId: string;
+    providerAttachmentId: string;
+  }) {
+    const [cached] = await db
+      .select()
+      .from(attachmentCache)
+      .where(
+        and(
+          eq(attachmentCache.accountId, args.accountId),
+          eq(attachmentCache.providerMessageId, args.providerMessageId),
+          eq(attachmentCache.providerAttachmentId, args.providerAttachmentId),
+        ),
+      )
+      .limit(1);
+    return cached ?? null;
+  },
+
+  async upsertAttachmentCache(args: {
+    accountId: string;
+    providerMessageId: string;
+    providerAttachmentId: string;
+    filename: string;
+    mimeType: string;
+    sizeBytes?: number;
+    bytesBase64: string;
+  }) {
+    await db
+      .insert(attachmentCache)
+      .values({
+        accountId: args.accountId,
+        providerMessageId: args.providerMessageId,
+        providerAttachmentId: args.providerAttachmentId,
+        filename: args.filename,
+        mimeType: args.mimeType,
+        sizeBytes: args.sizeBytes,
+        bytesBase64: args.bytesBase64,
+      })
+      .onConflictDoUpdate({
+        target: [
+          attachmentCache.accountId,
+          attachmentCache.providerMessageId,
+          attachmentCache.providerAttachmentId,
+        ],
+        set: {
+          filename: args.filename,
+          mimeType: args.mimeType,
+          sizeBytes: args.sizeBytes,
+          bytesBase64: args.bytesBase64,
+          updatedAt: now(),
+        },
+      });
+  },
+
+  async recordCommandEvent(args: {
+    userId: string;
+    accountId?: string | null;
+    commandId: string;
+    commandVersion: number;
+    viewScope: string;
+    selectionCount: number;
+    status: "success" | "queued" | "error";
+    durationMs?: number;
+    errorMessage?: string;
+  }) {
+    await db.insert(commandEvents).values({
+      userId: args.userId,
+      accountId: args.accountId ?? null,
+      commandId: args.commandId,
+      commandVersion: args.commandVersion,
+      viewScope: args.viewScope,
+      selectionCount: args.selectionCount,
+      status: args.status,
+      durationMs: args.durationMs,
+      errorMessage: args.errorMessage,
+    });
+  },
+
+  async listCommandEvents(userId: string, limit = 100) {
+    return db
+      .select()
+      .from(commandEvents)
+      .where(eq(commandEvents.userId, userId))
+      .orderBy(desc(commandEvents.recordedAt))
+      .limit(limit);
+  },
+
+  async recordLogEvent(args: {
+    userId: string;
+    accountId?: string | null;
+    level: "debug" | "info" | "warn" | "error";
+    scope: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    await db.insert(logEvents).values({
+      userId: args.userId,
+      accountId: args.accountId ?? null,
+      level: args.level,
+      scope: args.scope,
+      message: args.message,
+      metadata: args.metadata,
+    });
+  },
+
+  async recordAccountLogEvent(args: {
+    accountId: string;
+    level: "debug" | "info" | "warn" | "error";
+    scope: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const account = await this.getAccountById(args.accountId);
+    if (!account) {
+      return;
+    }
+
+    await this.recordLogEvent({
+      userId: account.userId,
+      accountId: account.id,
+      level: args.level,
+      scope: args.scope,
+      message: args.message,
+      metadata: args.metadata,
+    });
+  },
+
+  async listLogEvents(userId: string, limit = 200) {
+    return db
+      .select()
+      .from(logEvents)
+      .where(eq(logEvents.userId, userId))
+      .orderBy(desc(logEvents.recordedAt))
+      .limit(limit);
+  },
+
+  async pingDatabase() {
+    const result = await db.execute(sql<{ value: number }>`select 1 as value`);
+    const row = result[0];
+    return Number(row?.["value"] ?? 0) === 1;
+  },
+
+  async updateWorkerHeartbeat(args: {
+    workerId: string;
+    host: string;
+    pid: number;
+    version: string;
+    recordedAt?: Date;
+  }) {
+    await db
+      .insert(workerHeartbeats)
+      .values({
+        workerId: args.workerId,
+        host: args.host,
+        pid: args.pid,
+        version: args.version,
+        recordedAt: args.recordedAt ?? now(),
+      })
+      .onConflictDoUpdate({
+        target: workerHeartbeats.workerId,
+        set: {
+          host: args.host,
+          pid: args.pid,
+          version: args.version,
+          recordedAt: args.recordedAt ?? now(),
+        },
+      });
+  },
+
+  async getLatestWorkerHeartbeat() {
+    const [heartbeat] = await db
+      .select()
+      .from(workerHeartbeats)
+      .orderBy(desc(workerHeartbeats.recordedAt))
+      .limit(1);
+    return heartbeat ?? null;
+  },
+
+  async recordPerfEvent(args: {
+    userId: string;
+    accountId?: string | null;
+    route: string;
+    metric: string;
+    valueMs: number;
+    metadata?: Record<string, unknown>;
+  }) {
+    await db.insert(perfEvents).values({
+      userId: args.userId,
+      accountId: args.accountId ?? null,
+      route: args.route,
+      metric: args.metric,
+      valueMs: args.valueMs,
+      metadata: args.metadata,
+    });
+  },
+
+  async listPerfEvents(userId: string, limit = 200) {
+    return db
+      .select()
+      .from(perfEvents)
+      .where(eq(perfEvents.userId, userId))
+      .orderBy(desc(perfEvents.recordedAt))
+      .limit(limit);
   },
 
   async listFailedJobsForAccount(accountId: string) {

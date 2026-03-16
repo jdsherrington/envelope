@@ -15,6 +15,9 @@ const envSchema = z.object({
     .default(
       "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels",
     ),
+  WEBAUTHN_RP_NAME: z.string().default("Envelope"),
+  WEBAUTHN_RP_ID: z.string().optional(),
+  APP_VERSION: z.string().default("dev"),
 });
 
 const parsed = envSchema.safeParse(process.env);

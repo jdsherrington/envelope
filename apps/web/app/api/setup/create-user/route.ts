@@ -2,12 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { appRepository } from "@envelope/db";
 import { hashPassword, verifyTotpCode } from "@envelope/security";
 import { issueSession, setSessionCookies } from "@/lib/server/auth";
+import { requireSameOrigin } from "@/lib/server/guards";
 import { encryptForStorage } from "@/lib/server/secrets";
 import { createUserSchema } from "@/lib/server/schemas";
-import { badRequest, serverError } from "@/lib/server/http";
+import { badRequest, forbidden, serverError } from "@/lib/server/http";
 
 export async function POST(request: NextRequest) {
   try {
+    requireSameOrigin(request);
+
     const payload = createUserSchema.safeParse(await request.json());
     if (!payload.success) {
       return badRequest(payload.error.message);
@@ -43,6 +46,9 @@ export async function POST(request: NextRequest) {
       next: "/setup",
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_ORIGIN") {
+      return forbidden("Invalid request origin");
+    }
     return serverError(error instanceof Error ? error.message : "Failed to create user");
   }
 }

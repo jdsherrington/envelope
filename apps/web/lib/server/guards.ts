@@ -11,3 +11,14 @@ export const requireCsrf = (request: NextRequest, csrfTokenFromSession: string) 
     throw new Error("INVALID_CSRF");
   }
 };
+
+export const requireSameOrigin = (request: NextRequest) => {
+  const origin = request.headers.get("origin");
+  if (!origin) {
+    return;
+  }
+
+  if (origin !== request.nextUrl.origin) {
+    throw new Error("INVALID_ORIGIN");
+  }
+};

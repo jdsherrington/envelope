@@ -8,6 +8,8 @@ const envSchema = z.object({
     .default("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
   WORKER_POLL_MS: z.coerce.number().int().positive().default(5000),
   SYNC_POLL_MS: z.coerce.number().int().positive().default(45000),
+  WORKER_HEARTBEAT_MS: z.coerce.number().int().positive().default(30000),
+  WORKER_VERSION: z.string().default("dev"),
 });
 
 const parsed = envSchema.safeParse(process.env);

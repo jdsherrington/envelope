@@ -42,6 +42,8 @@ export type CommandContext = {
     density: "compact" | "comfortable";
     theme: "dark" | "light";
     keymap: "superhuman" | "vim";
+    contrast: "standard" | "high";
+    hideRareLabels: boolean;
     paletteOpen: boolean;
   };
 };
@@ -50,6 +52,7 @@ export type CommandAvailability = (ctx: CommandContext) => boolean;
 
 export type CommandKeybinding = {
   sequence: string;
+  keymap?: "superhuman" | "vim" | "all";
   when?: (ctx: CommandContext) => boolean;
 };
 
@@ -109,4 +112,17 @@ export type PickerSource = {
   id: PickerSourceId;
   getItems(ctx: CommandContext, query: string): Promise<PickerItem[]>;
   resolve?(ctx: CommandContext, itemId: string): Promise<unknown>;
+};
+
+export type CommandExecutionEvent = {
+  userId: string;
+  accountId?: string | null;
+  commandId: string;
+  commandVersion: number;
+  viewScope: CommandViewScope;
+  selectionCount: number;
+  status: "success" | "queued" | "error";
+  durationMs?: number;
+  errorMessage?: string;
+  recordedAt: string;
 };

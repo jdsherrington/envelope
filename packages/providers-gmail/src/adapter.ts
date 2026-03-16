@@ -1,5 +1,6 @@
 import {
   ProviderError,
+  type AttachmentBlob,
   type CanonicalAttachment,
   type CanonicalLabel,
   type CanonicalMessage,
@@ -7,10 +8,12 @@ import {
   type EmailAddress,
   type OAuthTokenSet,
   type OutgoingDraft,
+  type OutgoingMessage,
   type ProviderAdapter,
   type ProviderAccountContext,
   type ProviderQuotaSnapshot,
   type SyncDelta,
+  type InitialSyncChunk,
 } from "@envelope/core";
 
 type GmailApiMessage = {
@@ -43,8 +46,14 @@ type GmailApiError = {
   };
 };
 
+type GmailAttachmentResponse = {
+  data?: string;
+  size?: number;
+};
+
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 const OAUTH_BASE = "https://oauth2.googleapis.com";
+const INITIAL_SYNC_BATCH_SIZE = 5;
 
 const parseRetryAfterMs = (response: Response): number | undefined => {
   const header = response.headers.get("retry-after");
@@ -178,18 +187,40 @@ const oauthFetch = async <T>(path: string, init: RequestInit): Promise<T> => {
   const response = await fetch(`${OAUTH_BASE}${path}`, init);
   if (!response.ok) {
     let message = response.statusText;
+    let payload:
+      | {
+          error?: string;
+          error_description?: string;
+        }
+      | undefined;
     try {
-      const payload = (await response.json()) as { error?: string; error_description?: string };
+      payload = (await response.json()) as { error?: string; error_description?: string };
       message = payload.error_description ?? payload.error ?? response.statusText;
     } catch {
       // ignore
     }
 
+    if (payload?.error === "invalid_grant") {
+      throw new ProviderError({
+        message,
+        code: "AUTH_REVOKED",
+        retryable: false,
+        providerStatus: response.status,
+        providerPayload: payload,
+      });
+    }
+
     throw new ProviderError({
       message,
-      code: response.status === 400 ? "INVALID_REQUEST" : "NETWORK_ERROR",
+      code:
+        response.status === 401
+          ? "AUTH_EXPIRED"
+          : response.status === 400
+            ? "INVALID_REQUEST"
+            : "NETWORK_ERROR",
       retryable: response.status >= 500,
       providerStatus: response.status,
+      providerPayload: payload,
     });
   }
 
@@ -198,6 +229,15 @@ const oauthFetch = async <T>(path: string, init: RequestInit): Promise<T> => {
 
 const decodeBase64Url = (value: string): string =>
   Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+
+const base64UrlToBase64 = (value: string): string => {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const remainder = normalized.length % 4;
+  if (remainder === 0) {
+    return normalized;
+  }
+  return normalized.padEnd(normalized.length + (4 - remainder), "=");
+};
 
 const parseEmailAddress = (value: string | undefined): EmailAddress[] => {
   if (!value) {
@@ -606,6 +646,7 @@ const makeGmailAdapter = (): ProviderAdapter => {
       return {
         thread: canonicalThread,
         messages: canonicalMessages,
+        historyId: thread.historyId,
       };
     },
 
@@ -622,41 +663,119 @@ const makeGmailAdapter = (): ProviderAdapter => {
       return toCanonicalMessage(args.account, message, Boolean(args.includeBodies));
     },
 
-    async initialSync(args: { account: ProviderAccountContext; mode: "recent" }): Promise<SyncDelta> {
+    async getAttachment(args: {
+      account: ProviderAccountContext;
+      providerMessageId: string;
+      providerAttachmentId: string;
+    }): Promise<AttachmentBlob> {
+      const metadata = await mail.getMessage({
+        account: args.account,
+        providerMessageId: args.providerMessageId,
+        includeBodies: false,
+      });
+
+      const attachmentMeta = metadata.attachments.find(
+        (item) => item.providerAttachmentId === args.providerAttachmentId,
+      );
+
+      const attachment = await gmailFetch<GmailAttachmentResponse>(
+        args.account,
+        `/messages/${args.providerMessageId}/attachments/${args.providerAttachmentId}`,
+      );
+
+      if (!attachment.data) {
+        throw new ProviderError({
+          message: "Attachment payload is missing",
+          code: "NOT_FOUND",
+          retryable: false,
+        });
+      }
+
+      return {
+        providerAttachmentId: args.providerAttachmentId,
+        filename: attachmentMeta?.filename ?? "attachment",
+        mimeType: attachmentMeta?.mimeType ?? "application/octet-stream",
+        bytesBase64: base64UrlToBase64(attachment.data),
+      };
+    },
+
+    async initialSync(args: {
+      account: ProviderAccountContext;
+      mode: "recent";
+      onProgress?: (progress: { phase: string; processed: number; target?: number }) => Promise<void> | void;
+      onChunk?: (chunk: InitialSyncChunk) => Promise<void> | void;
+    }): Promise<SyncDelta> {
       const labels = await mail.listLabels({ account: args.account });
+      await args.onProgress?.({ phase: "labels", processed: 0, target: 1000 });
+      await args.onChunk?.({ upsertLabels: labels });
 
       let pageToken: string | null | undefined = null;
       const upsertThreads: CanonicalThread[] = [];
       const upsertMessages: CanonicalMessage[] = [];
       let highestHistoryId = BigInt(0);
+      let processed = 0;
+      const target = 1000;
+
+      const flushChunk = async () => {
+        if (!args.onChunk || (!upsertThreads.length && !upsertMessages.length)) {
+          return;
+        }
+
+        await args.onChunk({
+          upsertThreads: upsertThreads.splice(0, upsertThreads.length),
+          upsertMessages: upsertMessages.splice(0, upsertMessages.length),
+        });
+      };
 
       for (let page = 0; page < 20; page += 1) {
-        const pageResult = await mail.listThreads({
-          account: args.account,
-          pageToken,
-          pageSize: 50,
+        const params = new URLSearchParams({
+          maxResults: "50",
         });
 
-        for (const thread of pageResult.items) {
+        if (pageToken) {
+          params.set("pageToken", pageToken);
+        }
+
+        const pageResult = await gmailFetch<{
+          threads?: Array<{ id: string }>;
+          nextPageToken?: string;
+        }>(args.account, `/threads?${params.toString()}`);
+
+        for (const thread of pageResult.threads ?? []) {
           const full = await mail.getThread({
             account: args.account,
-            providerThreadId: thread.providerThreadId,
+            providerThreadId: thread.id,
             includeBodies: false,
           });
 
+          const latestMessage = full.messages.at(-1);
+          let messagesForUpsert = full.messages;
+
+          if (latestMessage && !latestMessage.textBody && !latestMessage.htmlBody) {
+            const withBody = await mail.getMessage({
+              account: args.account,
+              providerMessageId: latestMessage.providerMessageId,
+              includeBodies: true,
+            });
+            messagesForUpsert = full.messages.map((message) =>
+              message.providerMessageId === withBody.providerMessageId ? withBody : message,
+            );
+          }
+
           upsertThreads.push(full.thread);
-          upsertMessages.push(...full.messages);
+          upsertMessages.push(...messagesForUpsert);
+          processed += 1;
+          await args.onProgress?.({ phase: "threads", processed, target });
 
-          const historySource = await gmailFetch<GmailApiThread>(
-            args.account,
-            `/threads/${thread.providerThreadId}?format=minimal`,
-          );
-
-          if (historySource.historyId) {
-            const parsed = BigInt(historySource.historyId);
+          if (full.historyId) {
+            const parsed = BigInt(full.historyId);
             if (parsed > highestHistoryId) {
               highestHistoryId = parsed;
             }
+          }
+
+          if (upsertThreads.length >= INITIAL_SYNC_BATCH_SIZE) {
+            await flushChunk();
           }
         }
 
@@ -666,6 +785,14 @@ const makeGmailAdapter = (): ProviderAdapter => {
         pageToken = pageResult.nextPageToken;
       }
 
+      await flushChunk();
+
+      await args.onProgress?.({
+        phase: "cursor",
+        processed,
+        target,
+      });
+
       if (highestHistoryId === BigInt(0)) {
         const profile = await gmailFetch<{ historyId: string }>(args.account, "/profile");
         highestHistoryId = BigInt(profile.historyId ?? "0");
@@ -673,9 +800,9 @@ const makeGmailAdapter = (): ProviderAdapter => {
 
       return {
         newCursor: { raw: highestHistoryId.toString() },
-        upsertLabels: labels,
-        upsertThreads,
-        upsertMessages,
+        upsertLabels: args.onChunk ? undefined : labels,
+        upsertThreads: args.onChunk ? undefined : upsertThreads,
+        upsertMessages: args.onChunk ? undefined : upsertMessages,
       };
     },
 
@@ -831,6 +958,20 @@ const makeGmailAdapter = (): ProviderAdapter => {
       );
     },
 
+    async moveThreadsToSpam(args: {
+      account: ProviderAccountContext;
+      providerThreadIds: string[];
+    }) {
+      await Promise.all(
+        args.providerThreadIds.map((threadId) =>
+          gmailFetch(args.account, `/threads/${threadId}/modify`, {
+            method: "POST",
+            body: JSON.stringify({ addLabelIds: ["SPAM"], removeLabelIds: ["INBOX"] }),
+          }),
+        ),
+      );
+    },
+
     async createDraft(args: { account: ProviderAccountContext; draft: OutgoingDraft }) {
       const response = await gmailFetch<{ id: string; message: { id: string } }>(args.account, "/drafts", {
         method: "POST",
@@ -877,7 +1018,7 @@ const makeGmailAdapter = (): ProviderAdapter => {
       };
     },
 
-    async sendMessage(args: { account: ProviderAccountContext; message: OutgoingDraft }) {
+    async sendMessage(args: { account: ProviderAccountContext; message: OutgoingMessage }) {
       const response = await gmailFetch<{ id: string; threadId: string }>(args.account, "/messages/send", {
         method: "POST",
         body: JSON.stringify({
@@ -890,6 +1031,14 @@ const makeGmailAdapter = (): ProviderAdapter => {
         providerMessageId: response.id,
         providerThreadId: response.threadId,
       };
+    },
+
+    async sendLater(args: { account: ProviderAccountContext; message: OutgoingMessage; sendAt: string }) {
+      throw new ProviderError({
+        message: `Gmail native send later is not available via this adapter (${args.sendAt})`,
+        code: "INVALID_REQUEST",
+        retryable: false,
+      });
     },
   };
 

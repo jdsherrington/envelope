@@ -12,6 +12,27 @@ Envelope is a self-hosted, keyboard-first Gmail client.
    - Web: `bun run dev:web`
    - Worker: `bun run dev:worker`
 
+## Health Endpoint
+
+- `GET /health` returns runtime health with DB + worker heartbeat checks.
+- HTTP status is `200` when healthy and `503` when degraded.
+
+## Documentation
+
+- Full docs index: [`docs/README.md`](./docs/README.md)
+- Regenerate generated reference docs: `bun run docs:generate`
+- Validate docs freshness and links: `bun run docs:check`
+
+## Single Container Mode (Secondary)
+
+Run one container that hosts both web and worker processes (external Postgres required):
+
+1. Ensure `DATABASE_URL` points to an external/managed Postgres instance.
+2. Build and run with compose profile:
+   - `docker compose --profile single up app`
+3. Verify health:
+   - `curl http://localhost:3001/health`
+
 ## Workspace Layout
 
 - `apps/web` - Next.js web app + API routes

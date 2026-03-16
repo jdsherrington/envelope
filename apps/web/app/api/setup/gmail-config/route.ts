@@ -1,18 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appRepository } from "@envelope/db";
-import { requireAuthenticatedRequest, requireCsrf } from "@/lib/server/guards";
 import { encryptForStorage } from "@/lib/server/secrets";
 import { gmailConfigSchema } from "@/lib/server/schemas";
-import { badRequest, forbidden, serverError, unauthorized } from "@/lib/server/http";
+import { badRequest } from "@/lib/server/http";
+import { runMutationRoute } from "@/lib/server/mutation-route";
 
 export async function POST(request: NextRequest) {
-  try {
-    const auth = await requireAuthenticatedRequest(request);
-    if (!auth) {
-      return unauthorized();
-    }
-    requireCsrf(request, auth.session.csrfToken);
-
+  return runMutationRoute(
+    request,
+    async () => {
     const payload = gmailConfigSchema.safeParse(await request.json());
     if (!payload.success) {
       return badRequest(payload.error.message);
@@ -31,13 +27,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return unauthorized();
-    }
-    if (error instanceof Error && error.message === "INVALID_CSRF") {
-      return forbidden("Invalid CSRF token");
-    }
-    return serverError(error instanceof Error ? error.message : "Failed to save Gmail config");
-  }
+  },
+  "Failed to save Gmail config",
+);
 }

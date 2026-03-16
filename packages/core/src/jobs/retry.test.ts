@@ -31,4 +31,19 @@ describe("classifyJobError", () => {
 
     expect(result.status).toBe("dead");
   });
+
+  test("returns dead immediately for auth revoked errors", () => {
+    const result = classifyJobError(
+      new ProviderError({
+        message: "invalid_grant",
+        code: "AUTH_REVOKED",
+        retryable: false,
+      }),
+      1,
+      5,
+    );
+
+    expect(result.status).toBe("dead");
+    expect(result.errorCode).toBe("AUTH_REVOKED");
+  });
 });

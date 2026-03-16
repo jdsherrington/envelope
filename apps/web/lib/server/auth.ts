@@ -31,19 +31,22 @@ export const setSessionCookies = async (args: {
   csrfToken: string;
 }): Promise<void> => {
   const cookieStore = await cookies();
+  const isProd = process.env.NODE_ENV === "production";
   cookieStore.set(SESSION_COOKIE, args.token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "strict" : "lax",
     path: "/",
     maxAge: env.SESSION_TTL_HOURS * 60 * 60,
+    priority: "high",
   });
   cookieStore.set(CSRF_COOKIE, args.csrfToken, {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "strict" : "lax",
     path: "/",
     maxAge: env.SESSION_TTL_HOURS * 60 * 60,
+    priority: "high",
   });
 };
 

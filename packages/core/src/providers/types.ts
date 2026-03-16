@@ -47,6 +47,37 @@ export type CanonicalMessage = {
   attachments: CanonicalAttachment[];
 };
 
+export type CanonicalDraft = {
+  accountId: string;
+  providerId: ProviderId;
+  providerDraftId?: string;
+  providerThreadId?: string;
+  to: EmailAddress[];
+  cc: EmailAddress[];
+  bcc: EmailAddress[];
+  subject: string;
+  textBody?: string;
+  htmlBody?: string;
+  sendLaterAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CanonicalReminder = {
+  accountId: string;
+  providerThreadId: string;
+  remindAt: string;
+  reason?: string;
+};
+
+export type AttachmentBlob = {
+  providerAttachmentId: string;
+  filename: string;
+  mimeType: string;
+  bytesBase64: string;
+  cacheControl?: string;
+};
+
 export type CanonicalLabel = {
   accountId: string;
   providerId: ProviderId;
@@ -93,6 +124,12 @@ export type SyncDelta = {
   upsertMessages?: CanonicalMessage[];
   deleteThreadIds?: string[];
   deleteMessageIds?: string[];
+};
+
+export type InitialSyncChunk = {
+  upsertLabels?: CanonicalLabel[];
+  upsertThreads?: CanonicalThread[];
+  upsertMessages?: CanonicalMessage[];
 };
 
 export type ListPage<T> = {
@@ -158,6 +195,7 @@ export type ProviderErrorCode =
   | "NOT_FOUND"
   | "INVALID_REQUEST"
   | "PERMISSION_DENIED"
+  | "CONFLICT"
   | "UNKNOWN";
 
 export class ProviderError extends Error {
@@ -226,7 +264,7 @@ export type MailProvider = {
     account: ProviderAccountContext;
     providerThreadId: string;
     includeBodies?: boolean;
-  }): Promise<{ thread: CanonicalThread; messages: CanonicalMessage[] }>;
+  }): Promise<{ thread: CanonicalThread; messages: CanonicalMessage[]; historyId?: string }>;
 
   getMessage(args: {
     account: ProviderAccountContext;
@@ -234,9 +272,17 @@ export type MailProvider = {
     includeBodies?: boolean;
   }): Promise<CanonicalMessage>;
 
+  getAttachment(args: {
+    account: ProviderAccountContext;
+    providerMessageId: string;
+    providerAttachmentId: string;
+  }): Promise<AttachmentBlob>;
+
   initialSync(args: {
     account: ProviderAccountContext;
     mode: "recent";
+    onProgress?: (progress: { phase: string; processed: number; target?: number }) => Promise<void> | void;
+    onChunk?: (chunk: InitialSyncChunk) => Promise<void> | void;
   }): Promise<SyncDelta>;
 
   incrementalSync(args: {
@@ -281,6 +327,11 @@ export type MutationProvider = {
     account: ProviderAccountContext;
     providerThreadIds: string[];
     providerLabelIds: string[];
+  }): Promise<void>;
+
+  moveThreadsToSpam?(args: {
+    account: ProviderAccountContext;
+    providerThreadIds: string[];
   }): Promise<void>;
 
   snoozeThreads?(args: {

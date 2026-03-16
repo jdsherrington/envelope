@@ -13,10 +13,21 @@
     "start": "bun run --cwd apps/web start",
     "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/worker typecheck",
     "test": "bun test",
+    "test:unit": "bun test",
+    "test:security-regression": "bun test apps/web/lib/server/sanitize-html.test.ts apps/web/lib/server/csp.test.ts apps/web/lib/server/content-disposition.test.ts apps/web/lib/server/mutation-route-coverage.test.ts",
+    "test:integration": "bun test packages/core packages/providers-gmail packages/security",
+    "test:e2e": "playwright test tests/e2e/acceptance.e2e.ts",
+    "test:a11y": "playwright test tests/e2e/a11y.e2e.ts",
+    "test:perf-smoke": "playwright test tests/e2e/perf-smoke.e2e.ts",
+    "ci": "bun run typecheck && bun run test:unit && bun run test:security-regression && bun run test:integration && bun run test:e2e && bun run test:a11y && bun run test:perf-smoke && bun run build",
     "db:generate": "bunx drizzle-kit generate --config packages/db/drizzle.config.ts",
-    "db:migrate": "bunx drizzle-kit migrate --config packages/db/drizzle.config.ts"
+    "db:migrate": "bunx drizzle-kit migrate --config packages/db/drizzle.config.ts",
+    "docs:generate": "bun run scripts/docs/extract-inventory.ts && bun run scripts/docs/render-generated.ts",
+    "docs:check": "bun run scripts/docs/check.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^22.13.10",
     "drizzle-kit": "^0.30.4",
     "typescript": "^5.7.3"

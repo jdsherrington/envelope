@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Unit tests
+        run: bun run test:unit
+
+  security-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Security regression tests
+        run: bun run test:security-regression
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Integration tests
+        run: bun run test:integration
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Build web
+        run: bun run build
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Validate docs
+        run: bun run docs:check
+
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://envelope:envelope@localhost:5432/envelope
+      APP_ORIGIN: http://127.0.0.1:3000
+      ENVELOPE_SECRETS_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      SESSION_COOKIE_NAME: envelope_session
+      SESSION_TTL_HOURS: 24
+      E2E_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+      - name: Start Postgres
+        run: docker compose up -d postgres
+      - name: Run DB migrations
+        run: bun run db:migrate
+      - name: Start web app
+        run: |
+          bun run --cwd apps/web dev > /tmp/envelope-web.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/envelope-web.log
+          exit 1
+      - name: Run Playwright tests
+        run: bun run test:e2e
+
+  a11y:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://envelope:envelope@localhost:5432/envelope
+      APP_ORIGIN: http://127.0.0.1:3000
+      ENVELOPE_SECRETS_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      SESSION_COOKIE_NAME: envelope_session
+      SESSION_TTL_HOURS: 24
+      E2E_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+      - name: Start Postgres
+        run: docker compose up -d postgres
+      - name: Run DB migrations
+        run: bun run db:migrate
+      - name: Start web app
+        run: |
+          bun run --cwd apps/web dev > /tmp/envelope-web.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/envelope-web.log
+          exit 1
+      - name: Run a11y tests
+        run: bun run test:a11y
+
+  perf-smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://envelope:envelope@localhost:5432/envelope
+      APP_ORIGIN: http://127.0.0.1:3000
+      ENVELOPE_SECRETS_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      SESSION_COOKIE_NAME: envelope_session
+      SESSION_TTL_HOURS: 24
+      E2E_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+      - name: Start Postgres
+        run: docker compose up -d postgres
+      - name: Run DB migrations
+        run: bun run db:migrate
+      - name: Start web app
+        run: |
+          bun run --cwd apps/web dev > /tmp/envelope-web.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/envelope-web.log
+          exit 1
+      - name: Run perf smoke tests
+        run: bun run test:perf-smoke

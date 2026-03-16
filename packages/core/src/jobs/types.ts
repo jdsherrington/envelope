@@ -4,8 +4,10 @@ export type JobType =
   | "gmail.initialSync"
   | "gmail.incrementalSync"
   | "gmail.partialResync"
+  | "gmail.prefetchThreadBodies"
   | "gmail.archiveThreads"
   | "gmail.trashThreads"
+  | "gmail.moveThreadsToSpam"
   | "gmail.deleteThreadsPermanently"
   | "gmail.markThreadsRead"
   | "gmail.markThreadsUnread"
@@ -15,7 +17,8 @@ export type JobType =
   | "gmail.updateDraft"
   | "gmail.sendDraft"
   | "gmail.sendMessage"
-  | "gmail.sendLater";
+  | "gmail.sendLater"
+  | "envelope.reminderWakeup";
 
 export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "dead";
 
