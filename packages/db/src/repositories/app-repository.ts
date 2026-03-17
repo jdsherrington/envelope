@@ -149,10 +149,11 @@ export const appRepository = {
     return (
       settings ?? {
         userId,
-        theme: "dark",
+        theme: "system",
         density: "comfortable",
         keymap: "superhuman",
         contrast: "standard",
+        accent: "amber",
         hideRareLabels: true,
         createdAt: now(),
         updatedAt: now(),
@@ -162,10 +163,10 @@ export const appRepository = {
 
   async upsertUserSettings(args: {
     userId: string;
-    theme?: "dark" | "light";
+    theme?: "dark" | "light" | "system";
     density?: "comfortable" | "compact";
     keymap?: "superhuman" | "vim";
-    contrast?: "standard" | "high";
+    accent?: "amber" | "blue" | "emerald" | "rose" | "violet";
     hideRareLabels?: boolean;
   }) {
     const existing = await this.getUserSettings(args.userId);
@@ -173,7 +174,7 @@ export const appRepository = {
       theme: args.theme ?? existing.theme,
       density: args.density ?? existing.density,
       keymap: args.keymap ?? existing.keymap,
-      contrast: args.contrast ?? existing.contrast,
+      accent: args.accent ?? existing.accent,
       hideRareLabels: args.hideRareLabels ?? existing.hideRareLabels,
     };
 

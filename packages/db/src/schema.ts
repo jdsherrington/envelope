@@ -44,10 +44,11 @@ export const userSettings = pgTable("user_settings", {
   userId: uuid("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
-  theme: text("theme").notNull().default("dark"),
+  theme: text("theme").notNull().default("system"),
   density: text("density").notNull().default("comfortable"),
   keymap: text("keymap").notNull().default("superhuman"),
   contrast: text("contrast").notNull().default("standard"),
+  accent: text("accent").notNull().default("amber"),
   hideRareLabels: boolean("hide_rare_labels").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

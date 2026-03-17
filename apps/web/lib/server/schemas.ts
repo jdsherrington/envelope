@@ -92,10 +92,10 @@ export const syncRefreshSchema = z.object({
 });
 
 export const settingsSchema = z.object({
-  theme: z.enum(["dark", "light"]).optional(),
+  theme: z.enum(["dark", "light", "system"]).optional(),
   density: z.enum(["comfortable", "compact"]).optional(),
   keymap: z.enum(["superhuman", "vim"]).optional(),
-  contrast: z.enum(["standard", "high"]).optional(),
+  accent: z.enum(["amber", "blue", "emerald", "rose", "violet"]).optional(),
   hideRareLabels: z.boolean().optional(),
 });
 

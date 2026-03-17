@@ -29,10 +29,7 @@ export default async function SettingsPage() {
 
   return (
     <main
-      className={cn(
-        "mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-8",
-        settings.contrast === "high" ? "envelope-contrast-high" : "",
-      )}
+      className={cn("mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-8")}
     >
       <RoutePerfMarker route="/settings" />
       <div className="mb-4 flex items-center justify-between">
@@ -44,10 +41,19 @@ export default async function SettingsPage() {
 
       <SettingsPanel
         initial={{
-          theme: settings.theme === "light" ? "light" : "dark",
+          theme:
+            settings.theme === "light" || settings.theme === "dark" || settings.theme === "system"
+              ? settings.theme
+              : "system",
           density: settings.density === "compact" ? "compact" : "comfortable",
           keymap: settings.keymap === "vim" ? "vim" : "superhuman",
-          contrast: settings.contrast === "high" ? "high" : "standard",
+          accent:
+            settings.accent === "blue" ||
+            settings.accent === "emerald" ||
+            settings.accent === "rose" ||
+            settings.accent === "violet"
+              ? settings.accent
+              : "amber",
           hideRareLabels: settings.hideRareLabels,
         }}
       />
@@ -56,10 +62,19 @@ export default async function SettingsPage() {
         scope="settings"
         route="/settings"
         initialSettings={{
-          theme: settings.theme === "light" ? "light" : "dark",
+          theme:
+            settings.theme === "light" || settings.theme === "dark" || settings.theme === "system"
+              ? settings.theme
+              : "system",
           density: settings.density === "compact" ? "compact" : "comfortable",
           keymap: settings.keymap === "vim" ? "vim" : "superhuman",
-          contrast: settings.contrast === "high" ? "high" : "standard",
+          accent:
+            settings.accent === "blue" ||
+            settings.accent === "emerald" ||
+            settings.accent === "rose" ||
+            settings.accent === "violet"
+              ? settings.accent
+              : "amber",
           hideRareLabels: settings.hideRareLabels,
         }}
       />

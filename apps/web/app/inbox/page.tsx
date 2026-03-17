@@ -77,10 +77,19 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         initialAccountId={activeAccountId}
         initialThreadId={query.threadId ?? null}
         initialSettings={{
-          theme: settings.theme === "light" ? "light" : "dark",
+          theme:
+            settings.theme === "light" || settings.theme === "dark" || settings.theme === "system"
+              ? settings.theme
+              : "system",
           density: settings.density === "compact" ? "compact" : "comfortable",
           keymap: settings.keymap === "vim" ? "vim" : "superhuman",
-          contrast: settings.contrast === "high" ? "high" : "standard",
+          accent:
+            settings.accent === "blue" ||
+            settings.accent === "emerald" ||
+            settings.accent === "rose" ||
+            settings.accent === "violet"
+              ? settings.accent
+              : "amber",
           hideRareLabels: settings.hideRareLabels,
         }}
         accounts={accounts.map((account) => ({

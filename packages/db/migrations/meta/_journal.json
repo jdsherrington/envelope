@@ -29,6 +29,13 @@
       "when": 1772042400000,
       "tag": "0003_prd_closure",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772128800000,
+      "tag": "0004_system_theme_accent",
+      "breakpoints": true
     }
   ]
 }

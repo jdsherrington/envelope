@@ -1,18 +1,13 @@
 "use client";
 
+import type { UserSettings as CoreUserSettings } from "@envelope/core";
 import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import { cn } from "@/lib/client/cn";
 import { withCsrfHeaders } from "@/lib/client/csrf";
 import { useDocumentTheme } from "@/lib/client/theme";
 
-export type UserSettings = {
-  theme: "dark" | "light";
-  density: "comfortable" | "compact";
-  keymap: "superhuman" | "vim";
-  contrast: "standard" | "high";
-  hideRareLabels: boolean;
-};
+export type UserSettings = CoreUserSettings;
 
 export type SettingsTabId = "appearance" | "workflow" | "inbox";
 
@@ -26,12 +21,13 @@ type SettingsPanelProps = {
 type ChoiceCardProps = {
   title: string;
   description: string;
-  current: string;
+  columnsClassName?: string;
   options: Array<{
     label: string;
     description: string;
     active: boolean;
     onSelect: () => void;
+    swatchClassName?: string;
   }>;
 };
 
@@ -43,7 +39,7 @@ const settingsTabs: Array<{
   {
     id: "appearance",
     label: "Appearance",
-    summary: "Theme and contrast",
+    summary: "Theme and accent",
   },
   {
     id: "workflow",
@@ -57,20 +53,15 @@ const settingsTabs: Array<{
   },
 ];
 
-function ChoiceCard({ title, description, current, options }: ChoiceCardProps) {
+function ChoiceCard({ title, description, columnsClassName, options }: ChoiceCardProps) {
   return (
     <section className="envelope-panel-strong rounded-lg p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-2xl">
-          <h3 className="text-sm font-semibold text-balance">{title}</h3>
-          <p className="envelope-text-muted mt-1 text-sm text-pretty">{description}</p>
-        </div>
-        <span className="envelope-pill rounded-lg px-2.5 py-1 text-[11px] font-medium uppercase">
-          {current}
-        </span>
+      <div className="max-w-2xl">
+        <h3 className="text-sm font-semibold text-balance">{title}</h3>
+        <p className="envelope-text-muted mt-1 text-sm text-pretty">{description}</p>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className={cn("mt-4 grid gap-2 sm:grid-cols-2", columnsClassName)}>
         {options.map((option) => (
           <button
             key={option.label}
@@ -81,6 +72,12 @@ function ChoiceCard({ title, description, current, options }: ChoiceCardProps) {
               option.active ? "envelope-button-accent" : "envelope-button-secondary",
             )}
           >
+            {option.swatchClassName ? (
+              <span
+                aria-hidden="true"
+                className={cn("mb-3 block size-3 rounded-full border border-black/10", option.swatchClassName)}
+              />
+            ) : null}
             <span className="block text-sm font-medium text-balance">{option.label}</span>
             <span className="envelope-text-muted mt-1 block text-xs text-pretty">
               {option.description}
@@ -99,14 +96,12 @@ export function SettingsPanel({
   className,
 }: SettingsPanelProps) {
   const [settings, setSettings] = useState<UserSettings>(initial);
-  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useDocumentTheme(settings.theme);
+  useDocumentTheme(settings.theme, settings.accent);
 
   const save = async (patch: Partial<UserSettings>) => {
     setError(null);
-    setStatus(null);
     setSettings((current) => ({ ...current, ...patch }));
 
     const response = await fetch(
@@ -126,7 +121,6 @@ export function SettingsPanel({
     const next = (await response.json()) as UserSettings;
     setSettings(next);
     window.dispatchEvent(new CustomEvent("envelope:settings:updated", { detail: next }));
-    setStatus("Settings saved");
   };
 
   return (
@@ -137,11 +131,6 @@ export function SettingsPanel({
         className,
       )}
     >
-      {status ? (
-        <p className="envelope-status-success rounded-lg px-3 py-2 text-sm" role="status" aria-live="polite">
-          {status}
-        </p>
-      ) : null}
       {error ? (
         <p className="envelope-status-danger rounded-lg px-3 py-2 text-sm" role="status" aria-live="polite">
           {error}
@@ -170,7 +159,7 @@ export function SettingsPanel({
             <ChoiceCard
               title="Theme"
               description="Set the overall canvas and panel treatment for the entire app."
-              current={settings.theme}
+              columnsClassName="sm:grid-cols-3"
               options={[
                 {
                   label: "Dark",
@@ -182,35 +171,72 @@ export function SettingsPanel({
                 },
                 {
                   label: "Light",
-                  description: "Bright surfaces with the same neutral palette and contrast rhythm.",
+                  description: "Bright surfaces with the same neutral palette and calm visual rhythm.",
                   active: settings.theme === "light",
                   onSelect: () => {
                     void save({ theme: "light" });
+                  },
+                },
+                {
+                  label: "System",
+                  description: "Follow your operating system automatically throughout the day.",
+                  active: settings.theme === "system",
+                  onSelect: () => {
+                    void save({ theme: "system" });
                   },
                 },
               ]}
             />
 
             <ChoiceCard
-              title="Contrast"
-              description="Choose how strong the borders and text separation should feel."
-              current={settings.contrast === "high" ? "high contrast" : "standard"}
+              title="Accent"
+              description="Pick the highlight color used for focus, selection, actions, and unread emphasis."
+              columnsClassName="sm:grid-cols-3 lg:grid-cols-5"
               options={[
                 {
-                  label: "Standard",
-                  description: "Balanced contrast for everyday reading.",
-                  active: settings.contrast === "standard",
+                  label: "Amber",
+                  description: "Warm and editorial.",
+                  active: settings.accent === "amber",
                   onSelect: () => {
-                    void save({ contrast: "standard" });
+                    void save({ accent: "amber" });
                   },
+                  swatchClassName: "bg-amber-400",
                 },
                 {
-                  label: "High",
-                  description: "Sharper separation for clarity-heavy workflows.",
-                  active: settings.contrast === "high",
+                  label: "Blue",
+                  description: "Clean and technical.",
+                  active: settings.accent === "blue",
                   onSelect: () => {
-                    void save({ contrast: "high" });
+                    void save({ accent: "blue" });
                   },
+                  swatchClassName: "bg-sky-400",
+                },
+                {
+                  label: "Emerald",
+                  description: "Calm and focused.",
+                  active: settings.accent === "emerald",
+                  onSelect: () => {
+                    void save({ accent: "emerald" });
+                  },
+                  swatchClassName: "bg-emerald-400",
+                },
+                {
+                  label: "Rose",
+                  description: "Soft but vivid.",
+                  active: settings.accent === "rose",
+                  onSelect: () => {
+                    void save({ accent: "rose" });
+                  },
+                  swatchClassName: "bg-rose-400",
+                },
+                {
+                  label: "Violet",
+                  description: "Cool and expressive.",
+                  active: settings.accent === "violet",
+                  onSelect: () => {
+                    void save({ accent: "violet" });
+                  },
+                  swatchClassName: "bg-violet-400",
                 },
               ]}
             />
@@ -220,7 +246,6 @@ export function SettingsPanel({
             <ChoiceCard
               title="Density"
               description="Control how much information fits into the inbox at once."
-              current={settings.density}
               options={[
                 {
                   label: "Comfortable",
@@ -244,7 +269,6 @@ export function SettingsPanel({
             <ChoiceCard
               title="Keymap"
               description="Pick the keyboard language that matches how you move through mail."
-              current={settings.keymap}
               options={[
                 {
                   label: "Superhuman",
@@ -270,7 +294,6 @@ export function SettingsPanel({
             <ChoiceCard
               title="Label visibility"
               description="Decide whether the inbox emphasizes the most useful labels or shows every rare provider label."
-              current={settings.hideRareLabels ? "core labels" : "all labels"}
               options={[
                 {
                   label: "Core labels",

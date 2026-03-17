@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       theme: settings.theme,
       density: settings.density,
       keymap: settings.keymap,
-      contrast: settings.contrast === "high" ? "high" : "standard",
+      accent: settings.accent,
       hideRareLabels: settings.hideRareLabels,
     });
   } catch (error) {
@@ -30,10 +30,10 @@ export async function POST(request: NextRequest) {
     async (auth) => {
       let patch:
         | {
-            theme?: "dark" | "light";
+            theme?: "dark" | "light" | "system";
             density?: "comfortable" | "compact";
             keymap?: "superhuman" | "vim";
-            contrast?: "standard" | "high";
+            accent?: "amber" | "blue" | "emerald" | "rose" | "violet";
             hideRareLabels?: boolean;
           }
         | null = null;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         theme: settings.theme,
         density: settings.density,
         keymap: settings.keymap,
-        contrast: settings.contrast === "high" ? "high" : "standard",
+        accent: settings.accent,
         hideRareLabels: settings.hideRareLabels,
       });
     },

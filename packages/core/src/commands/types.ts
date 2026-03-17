@@ -40,9 +40,9 @@ export type CommandContext = {
   };
   ui: {
     density: "compact" | "comfortable";
-    theme: "dark" | "light";
+    theme: "dark" | "light" | "system";
     keymap: "superhuman" | "vim";
-    contrast: "standard" | "high";
+    accent: "amber" | "blue" | "emerald" | "rose" | "violet";
     hideRareLabels: boolean;
     paletteOpen: boolean;
   };

@@ -50,10 +50,7 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
 
   return (
     <main
-      className={cn(
-        "mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-4 py-6",
-        settings.contrast === "high" ? "envelope-contrast-high" : "",
-      )}
+      className={cn("mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-4 py-6")}
     >
       <RoutePerfMarker route="/thread" accountId={accountId} />
       <Link href={`/inbox?accountId=${accountId}`} className="envelope-link mb-4 text-sm">
@@ -126,10 +123,19 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
           messageId: latestMessage?.id ?? null,
         }}
         initialSettings={{
-          theme: settings.theme === "light" ? "light" : "dark",
+          theme:
+            settings.theme === "light" || settings.theme === "dark" || settings.theme === "system"
+              ? settings.theme
+              : "system",
           density: settings.density === "compact" ? "compact" : "comfortable",
           keymap: settings.keymap === "vim" ? "vim" : "superhuman",
-          contrast: settings.contrast === "high" ? "high" : "standard",
+          accent:
+            settings.accent === "blue" ||
+            settings.accent === "emerald" ||
+            settings.accent === "rose" ||
+            settings.accent === "violet"
+              ? settings.accent
+              : "amber",
           hideRareLabels: settings.hideRareLabels,
         }}
       />

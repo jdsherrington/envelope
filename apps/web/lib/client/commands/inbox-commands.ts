@@ -5,10 +5,10 @@ export type InboxCommandDependencies = {
   focusSearch: () => void;
   openSettings: () => void;
   updateSettings: (next: {
-    theme?: "dark" | "light";
+    theme?: "dark" | "light" | "system";
     density?: "comfortable" | "compact";
     keymap?: "superhuman" | "vim";
-    contrast?: "standard" | "high";
+    accent?: "amber" | "blue" | "emerald" | "rose" | "violet";
     hideRareLabels?: boolean;
   }) => Promise<void> | void;
   openThread: (threadId: string, accountId: string) => void;
@@ -146,13 +146,14 @@ export const buildInboxCommands = (deps: InboxCommandDependencies): CommandDefin
     presentation: {
       title: "Toggle theme",
       category: "Settings",
-      keywords: ["theme", "dark", "light"],
+      keywords: ["theme", "dark", "light", "system"],
     },
     input: { type: "none" },
     confirm: { type: "none" },
     execute: async (ctx) => {
       await deps.updateSettings({
-        theme: ctx.ui.theme === "dark" ? "light" : "dark",
+        theme:
+          ctx.ui.theme === "dark" ? "light" : ctx.ui.theme === "light" ? "system" : "dark",
       });
       return { status: "success" };
     },
@@ -191,25 +192,6 @@ export const buildInboxCommands = (deps: InboxCommandDependencies): CommandDefin
     execute: async (ctx) => {
       await deps.updateSettings({
         keymap: ctx.ui.keymap === "superhuman" ? "vim" : "superhuman",
-      });
-      return { status: "success" };
-    },
-  },
-  {
-    id: "ui.toggleContrast",
-    version: 1,
-    scope: ["global", "inbox"],
-    availability: () => true,
-    presentation: {
-      title: "Toggle high contrast",
-      category: "Settings",
-      keywords: ["contrast", "high contrast"],
-    },
-    input: { type: "none" },
-    confirm: { type: "none" },
-    execute: async (ctx) => {
-      await deps.updateSettings({
-        contrast: ctx.ui.contrast === "high" ? "standard" : "high",
       });
       return { status: "success" };
     },

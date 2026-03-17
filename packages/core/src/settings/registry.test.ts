@@ -10,12 +10,12 @@ describe("SettingsRegistry", () => {
       theme: "light",
       keymap: "vim",
       density: "compact",
-      contrast: "high",
+      accent: "blue",
     });
     expect(settings.theme).toBe("light");
     expect(settings.keymap).toBe("vim");
     expect(settings.density).toBe("compact");
-    expect(settings.contrast).toBe("high");
+    expect(settings.accent).toBe("blue");
     expect(settings.hideRareLabels).toBe(true);
   });
 
@@ -25,12 +25,12 @@ describe("SettingsRegistry", () => {
 
     const settings = registry.apply({
       theme: "invalid" as never,
-      contrast: "extreme" as never,
+      accent: "chartreuse" as never,
       hideRareLabels: "yes" as never,
     });
 
-    expect(settings.theme).toBe("dark");
-    expect(settings.contrast).toBe("standard");
+    expect(settings.theme).toBe("system");
+    expect(settings.accent).toBe("amber");
     expect(settings.hideRareLabels).toBe(true);
   });
 });

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { CommandExecutor, CommandRegistry, type CommandContext } from "@envelope/core";
+import {
+  CommandExecutor,
+  CommandRegistry,
+  type CommandContext,
+  type UserSettings,
+} from "@envelope/core";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
@@ -60,14 +65,6 @@ type SyncProgress = {
   updatedAt?: string | null;
 };
 
-type UserSettings = {
-  theme: "dark" | "light";
-  density: "comfortable" | "compact";
-  keymap: "superhuman" | "vim";
-  contrast: "standard" | "high";
-  hideRareLabels: boolean;
-};
-
 type InboxAppProps = {
   userId: string;
   initialAccountId: string | null;
@@ -79,11 +76,13 @@ type InboxAppProps = {
 
 type RailLinkProps = {
   active?: boolean;
-  ariaLabel: string;
+  ariaLabel?: string;
   label: string;
   href: Route;
-  expanded: boolean;
   children: ReactNode;
+  badge?: string | null;
+  expanded?: boolean;
+  tone?: "neutral" | "accent";
 };
 
 type InboxNotification = {
@@ -98,7 +97,8 @@ const PREVIEW_PANE_DEFAULT_WIDTH = 420;
 const PREVIEW_PANE_MIN_WIDTH = 320;
 const PREVIEW_PANE_MAX_WIDTH = 860;
 const PREVIEW_PANE_KEYBOARD_STEP = 24;
-const SHELL_RAIL_WIDTH_PX = 76;
+const SHELL_RAIL_COLLAPSED_WIDTH_PX = 84;
+const SHELL_RAIL_EXPANDED_WIDTH_PX = 248;
 const SHELL_GAP_PX = 12;
 const SHELL_RESIZER_WIDTH_PX = 12;
 const THREAD_LIST_MIN_WIDTH_PX = 520;
@@ -116,13 +116,12 @@ const readStoredPreviewPaneWidth = (): number => {
     : PREVIEW_PANE_DEFAULT_WIDTH;
 };
 
-const getMaxPreviewPaneWidth = (shellWidth: number): number => {
+const getMaxPreviewPaneWidth = (shellWidth: number, railWidth: number): number => {
   if (shellWidth <= 0) {
     return PREVIEW_PANE_MAX_WIDTH;
   }
 
-  const reservedWidth =
-    SHELL_RAIL_WIDTH_PX + THREAD_LIST_MIN_WIDTH_PX + SHELL_RESIZER_WIDTH_PX + SHELL_GAP_PX * 3;
+  const reservedWidth = railWidth + THREAD_LIST_MIN_WIDTH_PX + SHELL_RESIZER_WIDTH_PX + SHELL_GAP_PX * 2;
   return clampNumber(shellWidth - reservedWidth, PREVIEW_PANE_MIN_WIDTH, PREVIEW_PANE_MAX_WIDTH);
 };
 
@@ -153,7 +152,7 @@ const buildCommandContext = (args: {
     density: args.settings.density,
     theme: args.settings.theme,
     keymap: args.settings.keymap,
-    contrast: args.settings.contrast,
+    accent: args.settings.accent,
     hideRareLabels: args.settings.hideRareLabels,
     paletteOpen: args.paletteOpen,
   },
@@ -222,39 +221,54 @@ const formatThreadSender = (thread: InboxThread): string => {
   return thread.senderEmail.split("@")[0] ?? thread.senderEmail;
 };
 
-function RailLink({ active = false, ariaLabel, label, href, expanded, children }: RailLinkProps) {
+function RailLink({
+  active = false,
+  ariaLabel,
+  label,
+  href,
+  children,
+  badge,
+  expanded = true,
+  tone = "neutral",
+}: RailLinkProps) {
   return (
     <Link
       href={href}
-      aria-label={ariaLabel}
-      title={label}
+      aria-label={ariaLabel ?? label}
       className={cn(
-        "group/rail-link flex size-11 touch-manipulation items-center justify-center rounded-xl border p-0 transition-[width,background-color,border-color,color,box-shadow] duration-300 ease-out",
-        active
-          ? "envelope-button-accent shadow-[0_18px_40px_-26px_var(--color-accent)]"
-          : "envelope-button-secondary hover:shadow-[0_16px_36px_-28px_oklch(0_0_0_/_0.7)]",
-        expanded ? "xl:h-auto xl:w-full xl:justify-start xl:gap-3 xl:px-3 xl:py-2.5" : "xl:h-11 xl:w-11",
+        "envelope-sidebar-link group/rail-link flex touch-manipulation items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+        expanded ? "xl:justify-start xl:gap-3" : "xl:justify-center xl:gap-0 xl:px-0",
+        active && "envelope-sidebar-link-active",
+        tone === "accent" && "envelope-sidebar-action",
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-300",
-          active
-            ? "bg-[var(--color-accent-surface)] text-[var(--color-accent)]"
-            : "text-[var(--color-text)] group-hover/rail-link:text-[var(--color-accent)]",
+          "envelope-sidebar-link-icon flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 ease-out motion-reduce:transition-none",
+          (active || tone === "accent") && "envelope-sidebar-link-icon-active",
         )}
       >
         {children}
       </span>
       <span
         className={cn(
-          "hidden overflow-hidden whitespace-nowrap text-sm font-medium xl:block xl:transition-[max-width,opacity,transform] xl:duration-300 xl:ease-out",
-          expanded ? "xl:max-w-[11rem] xl:translate-x-0 xl:opacity-100" : "xl:-translate-x-2 xl:max-w-0 xl:opacity-0",
+          "min-w-0 flex-1 truncate xl:overflow-hidden xl:transition-[max-width,opacity,transform] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+          expanded ? "xl:max-w-[11rem] xl:translate-x-0 xl:opacity-100" : "xl:max-w-0 xl:-translate-x-2 xl:opacity-0",
         )}
       >
         {label}
       </span>
+      {badge ? (
+        <span
+          className={cn(
+            "envelope-sidebar-chip shrink-0 xl:overflow-hidden xl:transition-[max-width,opacity,transform] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+            expanded ? "xl:max-w-[6rem] xl:translate-x-0 xl:opacity-100" : "xl:max-w-0 xl:translate-x-2 xl:opacity-0 xl:px-0 xl:py-0 xl:border-transparent",
+          )}
+        >
+          {badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -306,13 +320,34 @@ function SettingsIcon() {
   );
 }
 
+function MoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 8.5h16" />
+      <path d="M4 15.5h16" />
+      <path d="M15 5.5h4v6h-4z" />
+      <path d="M5 12.5h4v6H5z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="m7 10 5 5 5-5" />
+    </svg>
+  );
+}
+
 function InlineNotification({
   notification,
   visible,
+  contentVisible,
   onDismiss,
 }: {
   notification: InboxNotification | null;
   visible: boolean;
+  contentVisible: boolean;
   onDismiss: () => void;
 }) {
   if (!notification) {
@@ -329,7 +364,7 @@ function InlineNotification({
     >
       <div
         className={cn(
-          "envelope-inline-notification flex items-start gap-4 rounded-[1.25rem] px-5 py-4",
+          "envelope-inline-notification flex items-center gap-4 rounded-lg px-5 py-4",
           notification.tone === "success"
             ? "envelope-inline-notification-success"
             : "envelope-inline-notification-danger",
@@ -339,11 +374,11 @@ function InlineNotification({
       >
         <div
           className={cn(
-            "min-w-0 flex-1 transition-[opacity,transform] duration-200 ease-out",
-            visible ? "translate-y-0 opacity-100 delay-100" : "translate-y-2 opacity-0",
+            "flex min-w-0 flex-1 items-center transition-[opacity,transform] duration-200 ease-out",
+            contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
           )}
         >
-          <p className="text-sm font-medium tracking-[0.01em] text-pretty sm:text-[0.95rem]">
+          <p className="text-sm font-medium leading-[1.15] tracking-[0.01em] text-pretty sm:text-[0.95rem]">
             {notification.message}
           </p>
         </div>
@@ -352,8 +387,8 @@ function InlineNotification({
           type="button"
           onClick={onDismiss}
           className={cn(
-            "envelope-inline-notification-dismiss rounded-full p-1.5 transition-[opacity,transform] duration-200 ease-out",
-            visible ? "translate-y-0 opacity-100 delay-150" : "translate-y-2 opacity-0",
+            "envelope-inline-notification-dismiss shrink-0 rounded-full p-1.5 transition-[opacity,transform] duration-200 ease-out",
+            contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
           )}
           aria-label="Dismiss notification"
         >
@@ -395,6 +430,7 @@ export function InboxApp({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [renderedNotification, setRenderedNotification] = useState<InboxNotification | null>(null);
   const [notificationVisible, setNotificationVisible] = useState(false);
+  const [notificationContentVisible, setNotificationContentVisible] = useState(false);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
   const [searchQuery, setSearchQuery] = useState("");
@@ -444,8 +480,11 @@ export function InboxApp({
   const activeNotificationKey = activeNotification
     ? `${activeNotification.tone}:${activeNotification.message}`
     : null;
+  const renderedNotificationKey = renderedNotification
+    ? `${renderedNotification.tone}:${renderedNotification.message}`
+    : null;
 
-  useDocumentTheme(settings.theme);
+  useDocumentTheme(settings.theme, settings.accent);
 
   useEffect(() => {
     const onSettingsUpdated = (event: Event) => {
@@ -714,26 +753,61 @@ export function InboxApp({
   }, []);
 
   useEffect(() => {
-    let frameId = 0;
+    let firstFrameId = 0;
+    let secondFrameId = 0;
+    let replaceTimeoutId = 0;
+    let revealTimeoutId = 0;
 
     if (activeNotification) {
-      setNotificationVisible(false);
+      const hasVisibleNotification = Boolean(renderedNotification && notificationVisible);
+
+      if (hasVisibleNotification && activeNotificationKey === renderedNotificationKey) {
+        setNotificationContentVisible(true);
+        return undefined;
+      }
+
+      if (hasVisibleNotification && activeNotificationKey !== renderedNotificationKey) {
+        setNotificationContentVisible(false);
+        replaceTimeoutId = window.setTimeout(() => {
+          setRenderedNotification(activeNotification);
+          revealTimeoutId = window.setTimeout(() => {
+            setNotificationContentVisible(true);
+          }, 32);
+        }, 120);
+
+        return () => {
+          window.clearTimeout(replaceTimeoutId);
+          window.clearTimeout(revealTimeoutId);
+        };
+      }
+
       setRenderedNotification(activeNotification);
-      frameId = window.requestAnimationFrame(() => {
-        setNotificationVisible(true);
+      setNotificationContentVisible(false);
+      setNotificationVisible(false);
+      firstFrameId = window.requestAnimationFrame(() => {
+        secondFrameId = window.requestAnimationFrame(() => {
+          setNotificationVisible(true);
+          revealTimeoutId = window.setTimeout(() => {
+            setNotificationContentVisible(true);
+          }, 110);
+        });
       });
 
       return () => {
-        window.cancelAnimationFrame(frameId);
+        window.cancelAnimationFrame(firstFrameId);
+        window.cancelAnimationFrame(secondFrameId);
+        window.clearTimeout(replaceTimeoutId);
+        window.clearTimeout(revealTimeoutId);
       };
     }
 
+    setNotificationContentVisible(false);
     setNotificationVisible(false);
     return undefined;
   }, [activeNotification, activeNotificationKey]);
 
   useEffect(() => {
-    if (activeNotification || notificationVisible || !renderedNotification) {
+    if (activeNotification || notificationVisible || notificationContentVisible || !renderedNotification) {
       return;
     }
 
@@ -744,7 +818,7 @@ export function InboxApp({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [activeNotification, notificationVisible, renderedNotification]);
+  }, [activeNotification, notificationVisible, notificationContentVisible, renderedNotification]);
 
   const setUnreadCountForThreads = useCallback((threadIds: string[], unreadCount: number) => {
     const selected = new Set(threadIds);
@@ -1021,10 +1095,10 @@ export function InboxApp({
         searchRef.current?.focus();
       },
       updateSettings: (next: {
-        theme?: "dark" | "light";
+        theme?: "dark" | "light" | "system";
         density?: "comfortable" | "compact";
         keymap?: "superhuman" | "vim";
-        contrast?: "standard" | "high";
+        accent?: "amber" | "blue" | "emerald" | "rose" | "violet";
         hideRareLabels?: boolean;
       }) => updateSettings(next),
       openSettings: () => {
@@ -1332,6 +1406,36 @@ export function InboxApp({
   };
 
   const activeAccount = accounts.find((account) => account.id === activeAccountId) ?? null;
+  const diagnosticsNeedsAttention =
+    syncLooksStale ||
+    activeAccount?.status === "needs_reauth" ||
+    activeAccount?.status === "rate_limited" ||
+    activeAccount?.status === "error";
+  const sidebarStatusLabel = syncProgress?.inProgress
+    ? `Syncing ${prettySyncPhase(syncProgress.phase)}`
+    : activeAccount?.status === "needs_reauth"
+      ? "Reconnect required"
+      : activeAccount?.status === "rate_limited"
+        ? "Rate limited"
+        : activeAccount?.status === "error"
+          ? "Attention needed"
+          : activeAccount
+            ? "Ready"
+            : "No account";
+  const sidebarStatusDetail = syncProgress?.inProgress
+    ? `${syncProgress.processed}${syncProgress.target ? ` of ${syncProgress.target}` : ""} conversations refreshed`
+    : activeAccount?.lastSyncedAt
+      ? `Last sync ${formatStableInboxTimestamp(activeAccount.lastSyncedAt)}`
+      : activeAccount
+        ? "Waiting for the next sync window"
+        : "Connect an account to begin";
+  const sidebarStatusToneClass = syncProgress?.inProgress
+    ? "bg-[var(--color-accent)]"
+    : activeAccount?.status === "error"
+      ? "bg-[var(--color-danger-fg)]"
+      : activeAccount?.status === "needs_reauth" || activeAccount?.status === "rate_limited"
+        ? "bg-[var(--color-warning-fg)]"
+        : "bg-[var(--color-success-fg)]";
   const activePreviewThread = visibleThreads.find((thread) => thread.id === activePreviewThreadId) ?? null;
   const dismissNotification = useCallback(() => {
     setNotificationVisible(false);
@@ -1360,7 +1464,8 @@ export function InboxApp({
       });
   }, [activeAccountId, activePreviewThread, markThreadsRead, refreshInboxThreads]);
 
-  const maxPreviewPaneWidth = getMaxPreviewPaneWidth(shellWidth);
+  const currentRailWidth = railExpanded ? SHELL_RAIL_EXPANDED_WIDTH_PX : SHELL_RAIL_COLLAPSED_WIDTH_PX;
+  const maxPreviewPaneWidth = getMaxPreviewPaneWidth(shellWidth, currentRailWidth);
   const previewPaneWidth = clampNumber(
     previewPanePreferredWidth,
     PREVIEW_PANE_MIN_WIDTH,
@@ -1479,20 +1584,21 @@ export function InboxApp({
   }, []);
 
   const railHeaderRevealClassName = cn(
-    "hidden overflow-hidden xl:block xl:transition-[max-width,opacity,transform] xl:duration-300 xl:ease-out",
-    railExpanded ? "xl:max-w-[9.5rem] xl:translate-x-0 xl:opacity-100" : "xl:-translate-x-2 xl:max-w-0 xl:opacity-0",
+    "min-w-0 xl:overflow-hidden xl:transition-[max-width,opacity,transform] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+    railExpanded ? "xl:max-w-[10rem] xl:translate-x-0 xl:opacity-100" : "xl:max-w-0 xl:-translate-x-2 xl:opacity-0",
   );
-  const railDetailRevealClassName = cn(
-    "overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
-    railExpanded ? "max-h-40 translate-y-0 opacity-100" : "max-h-0 translate-y-3 opacity-0",
+  const railChipRevealClassName = cn(
+    "xl:overflow-hidden xl:transition-[max-width,opacity,transform] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+    railExpanded ? "xl:max-w-[8rem] xl:translate-x-0 xl:opacity-100" : "xl:max-w-0 xl:translate-x-2 xl:opacity-0",
+  );
+  const railAccountRevealClassName = cn(
+    "xl:overflow-hidden xl:transition-[max-height,opacity,transform,margin] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+    railExpanded ? "xl:mt-0 xl:max-h-[10rem] xl:translate-y-0 xl:opacity-100" : "xl:mt-0 xl:max-h-0 xl:translate-y-2 xl:opacity-0",
   );
 
   return (
     <div
-      className={cn(
-        "flex h-dvh flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-4",
-        settings.contrast === "high" ? "envelope-contrast-high" : "",
-      )}
+      className="flex h-dvh flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-4"
     >
       <a
         href="#inbox-main"
@@ -1512,90 +1618,137 @@ export function InboxApp({
         ) : null}
 
         <div ref={shellRef} className="relative isolate flex min-h-0 flex-1 flex-col gap-3 xl:flex-row xl:gap-0">
-          <div
-            aria-hidden="true"
-            className={cn(
-              "envelope-rail-veil pointer-events-none absolute inset-0 z-base hidden rounded-[1.75rem] transition-opacity duration-300 xl:block",
-              railExpanded ? "opacity-100" : "opacity-0",
-            )}
-          />
-
           <aside
-            className="relative flex flex-none xl:mr-3 xl:h-full xl:w-[4.75rem]"
-            onMouseEnter={() => setRailExpanded(true)}
-            onMouseLeave={() => setRailExpanded(false)}
+            className={cn(
+              "relative flex flex-none xl:mr-3 xl:h-full xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+              railExpanded ? "xl:w-[15.5rem]" : "xl:w-[5.25rem]",
+            )}
+            onPointerEnter={() => setRailExpanded(true)}
+            onPointerLeave={() => setRailExpanded(false)}
             onFocusCapture={() => setRailExpanded(true)}
             onBlurCapture={handleRailBlurCapture}
           >
             <div
               className={cn(
-                "envelope-rail z-nav flex w-full rounded-[1.25rem] p-3 transition-[width,box-shadow,background-color] duration-300 ease-out xl:absolute xl:inset-y-0 xl:left-0 xl:w-[4.75rem] xl:flex-col xl:justify-between xl:overflow-hidden",
-                railExpanded ? "xl:w-[18rem] xl:shadow-[0_34px_90px_-42px_oklch(0_0_0_/_0.95)]" : "xl:shadow-none",
+                "envelope-sidebar z-nav flex w-full flex-col gap-3 rounded-lg p-3 xl:min-h-0 xl:gap-4 xl:overflow-hidden xl:transition-[box-shadow] xl:duration-200 xl:ease-out motion-reduce:transition-none",
+                railExpanded ? "xl:shadow-[0_26px_68px_-42px_oklch(0_0_0_/_0.92)]" : "xl:shadow-[0_18px_48px_-46px_oklch(0_0_0_/_0.52)]",
               )}
             >
-              <div className="flex items-center gap-3 xl:flex-col xl:items-stretch">
-                <div className="flex items-center gap-3">
-                  <div className="envelope-brand-mark flex size-12 shrink-0 items-center justify-center rounded-xl">
+              <div className="flex items-start justify-between gap-3 xl:flex-col xl:items-stretch">
+                <div className={cn("flex min-w-0 items-center gap-3", !railExpanded && "xl:gap-0")}>
+                  <div className="envelope-brand-mark flex size-11 shrink-0 items-center justify-center rounded-lg">
                     <EnvelopeMark />
                   </div>
                   <div className={railHeaderRevealClassName}>
-                    <p className="text-sm font-semibold tracking-[0.01em]">Envelope</p>
-                    <p className="envelope-text-soft mt-0.5 text-xs">Mail cockpit</p>
+                    <p className="truncate text-sm font-semibold tracking-[0.01em]">Envelope</p>
+                    <p className="envelope-text-soft mt-0.5 truncate text-xs">Focused mail</p>
                   </div>
                 </div>
+                <div className={railChipRevealClassName}>
+                  <div className="envelope-sidebar-chip flex items-center gap-2 self-start xl:self-auto">
+                    <span className={cn("size-2 rounded-full", sidebarStatusToneClass)} aria-hidden="true" />
+                    <span>{syncProgress?.inProgress ? "Syncing" : diagnosticsNeedsAttention ? "Attention" : "Ready"}</span>
+                  </div>
+                </div>
+              </div>
 
-                <nav aria-label="Primary" className="flex gap-2 xl:mt-4 xl:flex-col">
-                  <RailLink
-                    active
-                    ariaLabel="Open inbox"
-                    label="Inbox"
-                    expanded={railExpanded}
-                    href={buildInboxHref(activeAccountId)}
-                  >
-                    <InboxIcon />
-                  </RailLink>
-                  <RailLink
-                    ariaLabel="Compose message"
-                    label="Compose"
-                    expanded={railExpanded}
-                    href={(activeAccountId ? `/compose?accountId=${activeAccountId}` : "/compose") as Route}
-                  >
-                    <ComposeIcon />
-                  </RailLink>
-                  <RailLink
-                    ariaLabel="Open diagnostics"
-                    label="Diagnostics"
-                    expanded={railExpanded}
-                    href={"/diagnostics" as Route}
-                  >
-                    <DiagnosticsIcon />
-                  </RailLink>
+              <RailLink
+                ariaLabel="Compose message"
+                label="Compose"
+                href={(activeAccountId ? `/compose?accountId=${activeAccountId}` : "/compose") as Route}
+                expanded={railExpanded}
+                tone="accent"
+              >
+                <ComposeIcon />
+              </RailLink>
+
+              <nav aria-label="Primary" className="grid gap-2">
+                <RailLink
+                  active
+                  ariaLabel="Open inbox"
+                  label="Inbox"
+                  href={buildInboxHref(activeAccountId)}
+                  expanded={railExpanded}
+                >
+                  <InboxIcon />
+                </RailLink>
+              </nav>
+
+              <details className="group xl:hidden">
+                <summary className="envelope-sidebar-link list-none cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,border-color,color] duration-200 ease-out [&::-webkit-details-marker]:hidden motion-reduce:transition-none">
+                  <span className="flex items-center gap-3">
+                    <span className="envelope-sidebar-link-icon flex size-9 shrink-0 items-center justify-center rounded-lg">
+                      <MoreIcon />
+                    </span>
+                    <span className="flex-1">Workspace</span>
+                    <span className="envelope-text-soft transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none">
+                      <ChevronDownIcon />
+                    </span>
+                  </span>
+                </summary>
+                <div className="mt-2 grid gap-2">
                   <RailLink
                     active={settingsDialogOpen}
                     ariaLabel="Open settings"
                     label="Settings"
-                    expanded={railExpanded}
                     href={buildInboxHref(activeAccountId, activePreviewThreadId, "settings")}
                   >
                     <SettingsIcon />
                   </RailLink>
-                </nav>
-              </div>
+                  <RailLink
+                    ariaLabel="Open diagnostics"
+                    label="Diagnostics"
+                    href={"/diagnostics" as Route}
+                    badge={diagnosticsNeedsAttention ? "Issue" : null}
+                  >
+                    <DiagnosticsIcon />
+                  </RailLink>
+                </div>
+              </details>
 
-              <div className="hidden xl:block">
-                <div className={railDetailRevealClassName}>
-                  <p className="envelope-text-muted truncate text-xs font-medium">
-                    {activeAccount?.email ?? "No account"}
-                  </p>
-                  <p className="envelope-text-soft mt-1 text-[11px]">
-                    {settings.keymap === "vim" ? "Vim" : "Superhuman"} keymap
-                  </p>
-                  <div className="envelope-panel-strong envelope-text-muted mt-3 rounded-xl px-3 py-2 text-xs">
-                    <p>
-                      <kbd className="envelope-kbd rounded-lg px-1.5 py-0.5 font-mono">Cmd</kbd>+
-                      <kbd className="envelope-kbd ml-1 rounded-lg px-1.5 py-0.5 font-mono">K</kbd>
+              <div className="hidden xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:justify-end">
+                <div className={railAccountRevealClassName}>
+                  <div className="envelope-sidebar-account rounded-lg p-3">
+                    <p className="envelope-sidebar-section-label text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      Active Account
+                    </p>
+                    <p className="mt-2 truncate text-sm font-semibold">
+                      {activeAccount?.email ?? "No account connected"}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={cn("size-2 rounded-full", sidebarStatusToneClass)} aria-hidden="true" />
+                      <p className="text-xs font-medium">{sidebarStatusLabel}</p>
+                    </div>
+                    <p className="envelope-text-soft mt-1 text-xs">{sidebarStatusDetail}</p>
+                  </div>
+                </div>
+
+                <div className={cn("mt-4", !railExpanded && "xl:mt-2")}>
+                  <div className={railHeaderRevealClassName}>
+                    <p className="envelope-sidebar-section-label px-3 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      Workspace
                     </p>
                   </div>
+                  <nav aria-label="Utilities" className="mt-2 grid gap-2">
+                    <RailLink
+                      active={settingsDialogOpen}
+                      ariaLabel="Open settings"
+                      label="Settings"
+                      href={buildInboxHref(activeAccountId, activePreviewThreadId, "settings")}
+                      expanded={railExpanded}
+                    >
+                      <SettingsIcon />
+                    </RailLink>
+                    <RailLink
+                      ariaLabel="Open diagnostics"
+                      label="Diagnostics"
+                      href={"/diagnostics" as Route}
+                      badge={diagnosticsNeedsAttention ? "Issue" : null}
+                      expanded={railExpanded}
+                    >
+                      <DiagnosticsIcon />
+                    </RailLink>
+                  </nav>
                 </div>
               </div>
             </div>
@@ -1603,106 +1756,59 @@ export function InboxApp({
 
           <main
             id="inbox-main"
-            className="envelope-panel flex min-h-[30rem] min-w-0 flex-1 flex-col overflow-hidden rounded-lg xl:min-h-0"
+            className="envelope-panel flex min-h-[30rem] min-w-0 flex-1 flex-col overflow-hidden rounded-lg xl:min-h-0 xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
           >
             <div className="envelope-panel-muted envelope-divider border-b px-4 pb-4 pt-5 lg:px-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="envelope-text-soft text-xs font-medium uppercase">
-                    {activeAccount?.email ?? "Envelope"}
-                  </p>
-                  <h1 className="mt-2 text-[2rem] font-semibold leading-none text-balance">Inbox</h1>
+                  <h1 className="text-[2rem] font-semibold leading-none text-balance">Inbox</h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
-                    {activeSearchQuery ? `${visibleThreads.length} results` : `${visibleThreads.length} threads`}
-                  </span>
-                  <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
-                    {selectedThreadIds.length} selected
-                  </span>
+                  {selectedThreadIds.length > 0 ? (
+                    <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
+                      {selectedThreadIds.length} selected
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-                <div>
-                  <label className="sr-only" htmlFor="search-inbox">
-                    Search inbox
-                  </label>
-                  <input
-                    id="search-inbox"
-                    name="search"
-                    ref={searchRef}
-                    autoComplete="off"
-                    spellCheck={false}
-                    placeholder="Search subject, snippet, or sender…"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="sr-only" htmlFor="active-account">
-                    Active account
-                  </label>
-                  <select
-                    id="active-account"
-                    value={activeAccountId ?? ""}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setActiveAccountId(value || null);
-                      navigate(buildInboxHref(value || null));
-                    }}
-                    className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
-                  >
-                    {accounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.email} ({account.status})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="mt-5 max-w-3xl">
+                <label className="sr-only" htmlFor="search-inbox">
+                  Search inbox
+                </label>
+                <input
+                  id="search-inbox"
+                  name="search"
+                  ref={searchRef}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Search subject, snippet, or sender…"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
+                />
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                {syncProgress?.inProgress ? (
-                  <span
-                    className="envelope-status-info rounded-lg px-3 py-1 text-xs font-medium"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    Syncing {prettySyncPhase(syncProgress.phase)} {syncProgress.processed}
-                    {syncProgress.target ? ` / ${syncProgress.target}` : ""}
-                  </span>
-                ) : null}
-                {syncLooksStale ? (
-                  <span className="envelope-status-warning rounded-lg px-3 py-1 text-xs font-medium">
-                    Sync looks stale
-                  </span>
-                ) : null}
-                <span
-                  className={cn(
-                    "rounded-lg px-3 py-1 text-xs font-medium",
-                    activeAccount?.status === "ok"
-                      ? "envelope-status-success"
-                      : activeAccount?.status === "syncing"
-                        ? "envelope-status-info"
-                        : activeAccount?.status === "needs_reauth"
-                          ? "envelope-status-warning"
-                          : "envelope-pill",
-                  )}
-                >
-                  {activeAccount?.status ?? "No account"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPaletteOpen(true)}
-                  className="envelope-button-secondary rounded-lg px-3 py-1 text-xs font-medium transition-colors"
-                >
-                  Command Palette
-                </button>
-              </div>
+              {(syncProgress?.inProgress || syncLooksStale) ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {syncProgress?.inProgress ? (
+                    <span
+                      className="envelope-status-info rounded-lg px-3 py-1 text-xs font-medium"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Syncing {prettySyncPhase(syncProgress.phase)} {syncProgress.processed}
+                      {syncProgress.target ? ` / ${syncProgress.target}` : ""}
+                    </span>
+                  ) : null}
+                  {syncLooksStale ? (
+                    <span className="envelope-status-warning rounded-lg px-3 py-1 text-xs font-medium">
+                      Sync looks stale
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {visibleThreads.length === 0 ? (
@@ -1761,7 +1867,7 @@ export function InboxApp({
                       >
                         <div
                           className={cn(
-                            "relative grid h-full grid-cols-[auto,1fr] gap-3 px-4 lg:px-5",
+                            "relative grid h-full grid-cols-[auto,1fr] gap-3 px-4 transition-colors duration-100 lg:px-5",
                             previewed ? "envelope-row-selected" : "envelope-row-hover",
                           )}
                         >
@@ -1907,7 +2013,7 @@ export function InboxApp({
 
           <div
             style={previewPaneStyle}
-            className="flex w-full flex-none flex-col gap-3 xl:h-full xl:w-[var(--preview-pane-width)] xl:min-w-0"
+            className="flex w-full flex-none flex-col gap-3 xl:h-full xl:w-[var(--preview-pane-width)] xl:min-w-0 xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
           >
             <InboxPreviewPane
               id="inbox-preview-pane"
@@ -1919,6 +2025,7 @@ export function InboxApp({
             <InlineNotification
               notification={renderedNotification}
               visible={notificationVisible}
+              contentVisible={notificationContentVisible}
               onDismiss={dismissNotification}
             />
           </div>

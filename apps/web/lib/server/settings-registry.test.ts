@@ -8,7 +8,7 @@ import {
 describe("settings registry", () => {
   test("contains required setting keys exactly once", () => {
     expect(listRegisteredSettingIds()).toEqual([
-      "contrast",
+      "accent",
       "density",
       "hideRareLabels",
       "keymap",
@@ -20,13 +20,13 @@ describe("settings registry", () => {
     const patch = normalizeSettingsPatch({
       theme: "light",
       keymap: "vim",
-      contrast: "high",
+      accent: "rose",
     });
 
     expect(patch).toEqual({
       theme: "light",
       keymap: "vim",
-      contrast: "high",
+      accent: "rose",
     });
   });
 
@@ -38,7 +38,7 @@ describe("settings registry", () => {
   test("applies defaults when values are missing", () => {
     const settings = applySettingsDefaults({ theme: "light" });
     expect(settings.theme).toBe("light");
-    expect(settings.contrast).toBe("standard");
+    expect(settings.accent).toBe("amber");
     expect(settings.keymap).toBe("superhuman");
   });
 });

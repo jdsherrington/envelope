@@ -5,6 +5,7 @@ import {
   CommandRegistry,
   type CommandContext,
   type CommandViewScope,
+  type UserSettings,
 } from "@envelope/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CommandPalette } from "@/components/command-palette";
@@ -18,14 +19,6 @@ import { buildDiagnosticsCommands } from "@/lib/client/commands/scopes/diagnosti
 import { buildNavigationCommands } from "@/lib/client/commands/scopes/navigation-commands";
 import { buildSettingsCommands } from "@/lib/client/commands/scopes/settings-commands";
 import { buildThreadCommands } from "@/lib/client/commands/scopes/thread-commands";
-
-type UserSettings = {
-  theme: "dark" | "light";
-  density: "comfortable" | "compact";
-  keymap: "superhuman" | "vim";
-  contrast: "standard" | "high";
-  hideRareLabels: boolean;
-};
 
 type ThreadCommandContext = {
   threadId: string;
@@ -99,7 +92,7 @@ export function AppCommandShell({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const keybindingManagerRef = useRef(new KeybindingManager());
 
-  useDocumentTheme(settings.theme);
+  useDocumentTheme(settings.theme, settings.accent);
 
   const updateSettings = useCallback(async (next: Partial<UserSettings>) => {
     setSettings((previous) => ({ ...previous, ...next }));
@@ -149,7 +142,7 @@ export function AppCommandShell({
         density: settings.density,
         theme: settings.theme,
         keymap: settings.keymap,
-        contrast: settings.contrast,
+        accent: settings.accent,
         hideRareLabels: settings.hideRareLabels,
         paletteOpen,
       },
