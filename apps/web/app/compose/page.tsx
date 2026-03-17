@@ -34,8 +34,8 @@ export default async function ComposePage({ searchParams }: ComposePageProps) {
   if (!accountId) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-4 py-8">
-        <p className="text-stone-300">Connect an account before composing.</p>
-        <Link href="/inbox" className="mt-3 text-sm text-amber-300">
+        <p className="envelope-text-muted">Connect an account before composing.</p>
+        <Link href="/inbox" className="envelope-link mt-3 text-sm">
           Back to inbox
         </Link>
       </main>
@@ -46,8 +46,8 @@ export default async function ComposePage({ searchParams }: ComposePageProps) {
   if (!account || account.userId !== user.id) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-4 py-8">
-        <p className="text-stone-300">Account not found.</p>
-        <Link href="/inbox" className="mt-3 text-sm text-amber-300">
+        <p className="envelope-text-muted">Account not found.</p>
+        <Link href="/inbox" className="envelope-link mt-3 text-sm">
           Back to inbox
         </Link>
       </main>
@@ -124,7 +124,7 @@ export default async function ComposePage({ searchParams }: ComposePageProps) {
       )}
     >
       <RoutePerfMarker route="/compose" accountId={accountId} />
-      <Link href={`/inbox?accountId=${accountId}`} className="mb-4 text-sm text-amber-300">
+      <Link href={`/inbox?accountId=${accountId}`} className="envelope-link mb-4 text-sm">
         Back to inbox
       </Link>
       <ComposeForm

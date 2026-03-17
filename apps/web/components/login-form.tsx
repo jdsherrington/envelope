@@ -10,7 +10,7 @@ export function LoginForm() {
 
   return (
     <form
-      className="grid gap-4 rounded-2xl border border-stone-800 bg-stone-900/80 p-5"
+      className="envelope-panel grid gap-4 rounded-2xl p-5"
       onSubmit={async (event) => {
         event.preventDefault();
         setError(null);
@@ -40,16 +40,16 @@ export function LoginForm() {
       }}
     >
       <h1 className="text-3xl font-semibold text-balance">Sign in</h1>
-      <p className="text-stone-400 text-pretty">Authenticate with password and TOTP.</p>
+      <p className="envelope-text-muted text-pretty">Authenticate with password and TOTP.</p>
 
       {error ? (
-        <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200 text-pretty">
+        <div className="envelope-status-danger rounded-lg px-3 py-2 text-sm text-pretty">
           {error}
         </div>
       ) : null}
 
       <div className="grid gap-1">
-        <label htmlFor="email" className="text-sm text-stone-300">
+        <label htmlFor="email" className="text-sm">
           Email
         </label>
         <input
@@ -59,12 +59,12 @@ export function LoginForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+          className="envelope-input rounded-lg px-3 py-2"
         />
       </div>
 
       <div className="grid gap-1">
-        <label htmlFor="password" className="text-sm text-stone-300">
+        <label htmlFor="password" className="text-sm">
           Password
         </label>
         <input
@@ -72,12 +72,12 @@ export function LoginForm() {
           name="password"
           type="password"
           required
-          className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+          className="envelope-input rounded-lg px-3 py-2"
         />
       </div>
 
       <div className="grid gap-1">
-        <label htmlFor="totpCode" className="text-sm text-stone-300">
+        <label htmlFor="totpCode" className="text-sm">
           TOTP code
         </label>
         <input
@@ -86,13 +86,13 @@ export function LoginForm() {
           inputMode="numeric"
           pattern="[0-9]{6}"
           required
-          className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 font-mono tabular-nums"
+          className="envelope-input rounded-lg px-3 py-2 font-mono tabular-nums"
         />
       </div>
 
       <button
         type="submit"
-        className="rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+        className="envelope-button-accent rounded-lg px-4 py-2 text-sm font-medium"
       >
         Sign in
       </button>
@@ -147,7 +147,7 @@ export function LoginForm() {
             setError(caught instanceof Error ? caught.message : "Passkey sign in failed");
           }
         }}
-        className="rounded-lg border border-stone-700 bg-stone-950 px-4 py-2 text-sm font-medium text-stone-200"
+        className="envelope-button-secondary rounded-lg px-4 py-2 text-sm font-medium"
       >
         Sign in with passkey
       </button>

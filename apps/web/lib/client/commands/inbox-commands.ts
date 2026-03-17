@@ -3,6 +3,7 @@ import type { CommandDefinition, CommandResult } from "@envelope/core";
 export type InboxCommandDependencies = {
   navigate: (href: string) => void;
   focusSearch: () => void;
+  openSettings: () => void;
   updateSettings: (next: {
     theme?: "dark" | "light";
     density?: "comfortable" | "compact";
@@ -62,7 +63,7 @@ export const buildInboxCommands = (deps: InboxCommandDependencies): CommandDefin
     confirm: { type: "none" },
     keybindings: [{ sequence: "g s" }],
     execute: async () => {
-      deps.navigate("/settings");
+      deps.openSettings();
       return { status: "success" };
     },
   },

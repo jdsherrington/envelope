@@ -56,19 +56,19 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
       )}
     >
       <RoutePerfMarker route="/thread" accountId={accountId} />
-      <Link href={`/inbox?accountId=${accountId}`} className="mb-4 text-sm text-amber-300">
+      <Link href={`/inbox?accountId=${accountId}`} className="envelope-link mb-4 text-sm">
         Back to inbox
       </Link>
 
-      <section className="rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section className="envelope-panel rounded-2xl p-4">
         <h1 className="text-2xl font-semibold text-balance">{thread.thread.subject}</h1>
-        <p className="mt-2 text-sm text-stone-400 text-pretty">{thread.thread.snippet}</p>
+        <p className="envelope-text-muted mt-2 text-sm text-pretty">{thread.thread.snippet}</p>
         {thread.thread.providerLabelIds.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1">
             {thread.thread.providerLabelIds.slice(0, 8).map((labelId) => (
               <span
                 key={labelId}
-                className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-[10px] uppercase text-stone-300"
+                className="envelope-pill rounded px-1.5 py-0.5 text-[10px] uppercase"
               >
                 {labelId.replace(/^CATEGORY_/, "").replace(/_/g, " ")}
               </span>
@@ -80,19 +80,19 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href={`/compose?accountId=${accountId}&mode=reply&threadId=${thread.thread.id}&messageId=${latestMessage.id}`}
-              className="rounded-lg border border-stone-700 px-3 py-1.5 text-xs uppercase text-stone-200"
+              className="envelope-button-secondary rounded-lg px-3 py-1.5 text-xs uppercase"
             >
               Reply
             </Link>
             <Link
               href={`/compose?accountId=${accountId}&mode=replyAll&threadId=${thread.thread.id}&messageId=${latestMessage.id}`}
-              className="rounded-lg border border-stone-700 px-3 py-1.5 text-xs uppercase text-stone-200"
+              className="envelope-button-secondary rounded-lg px-3 py-1.5 text-xs uppercase"
             >
               Reply All
             </Link>
             <Link
               href={`/compose?accountId=${accountId}&mode=forward&threadId=${thread.thread.id}&messageId=${latestMessage.id}`}
-              className="rounded-lg border border-stone-700 px-3 py-1.5 text-xs uppercase text-stone-200"
+              className="envelope-button-secondary rounded-lg px-3 py-1.5 text-xs uppercase"
             >
               Forward
             </Link>

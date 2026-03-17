@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CommandPalette } from "@/components/command-palette";
 import { withCsrfHeaders } from "@/lib/client/csrf";
 import { recordPerfEvent } from "@/lib/client/perf";
+import { useDocumentTheme } from "@/lib/client/theme";
 import { KeybindingManager } from "@/lib/client/commands/keybinding-manager";
 import { createPickerSourceRegistry } from "@/lib/client/commands/picker-sources";
 import { buildComposeCommands } from "@/lib/client/commands/scopes/compose-commands";
@@ -97,6 +98,8 @@ export function AppCommandShell({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const keybindingManagerRef = useRef(new KeybindingManager());
+
+  useDocumentTheme(settings.theme);
 
   const updateSettings = useCallback(async (next: Partial<UserSettings>) => {
     setSettings((previous) => ({ ...previous, ...next }));
@@ -450,9 +453,9 @@ export function AppCommandShell({
       />
 
       {(statusMessage || errorMessage) && (
-        <div className="fixed bottom-3 left-3 z-nav max-w-[28rem] rounded-lg border border-stone-700 bg-stone-900/95 px-3 py-2 text-xs">
-          {errorMessage ? <p className="text-red-300">{errorMessage}</p> : null}
-          {statusMessage ? <p className="text-emerald-200">{statusMessage}</p> : null}
+        <div className="envelope-panel-strong fixed bottom-3 left-3 z-nav max-w-[28rem] rounded-lg px-3 py-2 text-xs">
+          {errorMessage ? <p className="text-[var(--color-danger-fg)]">{errorMessage}</p> : null}
+          {statusMessage ? <p className="text-[var(--color-success-fg)]">{statusMessage}</p> : null}
         </div>
       )}
     </>

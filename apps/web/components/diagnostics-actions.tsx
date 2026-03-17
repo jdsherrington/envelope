@@ -45,13 +45,13 @@ function MutationButton({ label, endpoint, body, variant = "default", onDone }: 
         }}
         className={
           variant === "danger"
-            ? "rounded-lg border border-red-500/60 bg-red-500/10 px-2 py-1 text-xs text-red-200"
-            : "rounded-lg border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-200"
+            ? "envelope-status-danger rounded-lg px-2 py-1 text-xs"
+            : "envelope-button-secondary rounded-lg px-2 py-1 text-xs"
         }
       >
         {loading ? "Working..." : label}
       </button>
-      {error ? <p className="text-[11px] text-red-300">{error}</p> : null}
+      {error ? <p className="text-[11px] text-[var(--color-danger-fg)]">{error}</p> : null}
     </div>
   );
 }
@@ -142,12 +142,12 @@ export function RegisterPasskeyButton() {
             setError(caught instanceof Error ? caught.message : "Passkey registration failed");
           }
         }}
-        className="rounded-lg border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-200"
+        className="envelope-button-secondary rounded-lg px-2 py-1 text-xs"
       >
         Register Passkey
       </button>
-      {status ? <p className="text-[11px] text-emerald-300">{status}</p> : null}
-      {error ? <p className="text-[11px] text-red-300">{error}</p> : null}
+      {status ? <p className="text-[11px] text-[var(--color-success-fg)]">{status}</p> : null}
+      {error ? <p className="text-[11px] text-[var(--color-danger-fg)]">{error}</p> : null}
     </div>
   );
 }

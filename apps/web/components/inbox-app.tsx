@@ -1,15 +1,30 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
+import { CommandExecutor, CommandRegistry, type CommandContext } from "@envelope/core";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  CommandExecutor,
-  CommandRegistry,
-  type CommandContext,
-} from "@envelope/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { CommandPalette } from "@/components/command-palette";
+import { InboxPreviewPane, warmThreadPreview } from "@/components/inbox-preview-pane";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { withCsrfHeaders } from "@/lib/client/csrf";
 import { cn } from "@/lib/client/cn";
+import { formatInboxTimestamp, formatStableInboxTimestamp, useHydrated } from "@/lib/client/date-time";
 import { recordPerfEvent } from "@/lib/client/perf";
+import { useDocumentTheme } from "@/lib/client/theme";
 import { buildInboxCommands } from "@/lib/client/commands/inbox-commands";
 import { KeybindingManager } from "@/lib/client/commands/keybinding-manager";
 import {
@@ -33,6 +48,8 @@ type InboxThread = {
   lastMessageAt: string;
   unreadCount: number;
   providerLabelIds: string[];
+  senderName: string | null;
+  senderEmail: string | null;
 };
 
 type SyncProgress = {
@@ -54,9 +71,59 @@ type UserSettings = {
 type InboxAppProps = {
   userId: string;
   initialAccountId: string | null;
+  initialThreadId: string | null;
   initialSettings: UserSettings;
   accounts: InboxAccount[];
   initialThreads: InboxThread[];
+};
+
+type RailLinkProps = {
+  active?: boolean;
+  ariaLabel: string;
+  label: string;
+  href: Route;
+  expanded: boolean;
+  children: ReactNode;
+};
+
+type InboxNotification = {
+  tone: "success" | "danger";
+  message: string;
+  ariaRole: "status" | "alert";
+  ariaLive: "polite" | "assertive";
+};
+
+const PREVIEW_PANE_WIDTH_STORAGE_KEY = "envelope.inbox.preview-pane-width";
+const PREVIEW_PANE_DEFAULT_WIDTH = 420;
+const PREVIEW_PANE_MIN_WIDTH = 320;
+const PREVIEW_PANE_MAX_WIDTH = 860;
+const PREVIEW_PANE_KEYBOARD_STEP = 24;
+const SHELL_RAIL_WIDTH_PX = 76;
+const SHELL_GAP_PX = 12;
+const SHELL_RESIZER_WIDTH_PX = 12;
+const THREAD_LIST_MIN_WIDTH_PX = 520;
+
+const clampNumber = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
+
+const readStoredPreviewPaneWidth = (): number => {
+  if (typeof window === "undefined") {
+    return PREVIEW_PANE_DEFAULT_WIDTH;
+  }
+
+  const stored = Number(window.localStorage.getItem(PREVIEW_PANE_WIDTH_STORAGE_KEY));
+  return Number.isFinite(stored)
+    ? clampNumber(stored, PREVIEW_PANE_MIN_WIDTH, PREVIEW_PANE_MAX_WIDTH)
+    : PREVIEW_PANE_DEFAULT_WIDTH;
+};
+
+const getMaxPreviewPaneWidth = (shellWidth: number): number => {
+  if (shellWidth <= 0) {
+    return PREVIEW_PANE_MAX_WIDTH;
+  }
+
+  const reservedWidth =
+    SHELL_RAIL_WIDTH_PX + THREAD_LIST_MIN_WIDTH_PX + SHELL_RESIZER_WIDTH_PX + SHELL_GAP_PX * 3;
+  return clampNumber(shellWidth - reservedWidth, PREVIEW_PANE_MIN_WIDTH, PREVIEW_PANE_MAX_WIDTH);
 };
 
 const buildCommandContext = (args: {
@@ -132,16 +199,6 @@ const postCommandEvent = async (body: {
   }
 };
 
-const isSystemLabel = (labelId: string): boolean =>
-  ["INBOX", "UNREAD", "IMPORTANT", "CATEGORY_PERSONAL", "CATEGORY_UPDATES", "STARRED"].includes(labelId);
-
-const prettyLabel = (labelId: string): string =>
-  labelId
-    .replace(/^CATEGORY_/, "")
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/(^|\s)\w/g, (char) => char.toUpperCase());
-
 const prettySyncPhase = (phase: string | null | undefined): string => {
   if (!phase) {
     return "Inbox";
@@ -153,31 +210,258 @@ const prettySyncPhase = (phase: string | null | undefined): string => {
     .replace(/(^|\s)\w/g, (char) => char.toUpperCase());
 };
 
+const formatThreadSender = (thread: InboxThread): string => {
+  if (thread.senderName?.trim()) {
+    return thread.senderName;
+  }
+
+  if (!thread.senderEmail) {
+    return "Unknown sender";
+  }
+
+  return thread.senderEmail.split("@")[0] ?? thread.senderEmail;
+};
+
+function RailLink({ active = false, ariaLabel, label, href, expanded, children }: RailLinkProps) {
+  return (
+    <Link
+      href={href}
+      aria-label={ariaLabel}
+      title={label}
+      className={cn(
+        "group/rail-link flex size-11 touch-manipulation items-center justify-center rounded-xl border p-0 transition-[width,background-color,border-color,color,box-shadow] duration-300 ease-out",
+        active
+          ? "envelope-button-accent shadow-[0_18px_40px_-26px_var(--color-accent)]"
+          : "envelope-button-secondary hover:shadow-[0_16px_36px_-28px_oklch(0_0_0_/_0.7)]",
+        expanded ? "xl:h-auto xl:w-full xl:justify-start xl:gap-3 xl:px-3 xl:py-2.5" : "xl:h-11 xl:w-11",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-300",
+          active
+            ? "bg-[var(--color-accent-surface)] text-[var(--color-accent)]"
+            : "text-[var(--color-text)] group-hover/rail-link:text-[var(--color-accent)]",
+        )}
+      >
+        {children}
+      </span>
+      <span
+        className={cn(
+          "hidden overflow-hidden whitespace-nowrap text-sm font-medium xl:block xl:transition-[max-width,opacity,transform] xl:duration-300 xl:ease-out",
+          expanded ? "xl:max-w-[11rem] xl:translate-x-0 xl:opacity-100" : "xl:-translate-x-2 xl:max-w-0 xl:opacity-0",
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function EnvelopeMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 18.5 12 6l8 12.5" />
+      <path d="M7 18.5 12 11l5 7.5" />
+      <path d="M6 14.5h12" />
+    </svg>
+  );
+}
+
+function InboxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 7.5h16v9H4z" />
+      <path d="M7.5 12h3l1.5 2h3L16.5 12h3" />
+    </svg>
+  );
+}
+
+function ComposeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 18.5h5.5L19 9l-4-4-9.5 9.5Z" />
+      <path d="M13.5 6.5 17.5 10.5" />
+    </svg>
+  );
+}
+
+function DiagnosticsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M5 18.5h14" />
+      <path d="M7.5 15 10 12.5l2 2 4.5-5" />
+      <path d="M7 6.5h10" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+      <path d="M19 12a7 7 0 0 0-.08-1l2.08-1.62-2-3.46-2.54 1a7 7 0 0 0-1.72-1L14.4 3h-4.8l-.34 2.92a7 7 0 0 0-1.72 1l-2.54-1-2 3.46L5.08 11a7 7 0 0 0 0 2l-2.08 1.62 2 3.46 2.54-1a7 7 0 0 0 1.72 1L9.6 21h4.8l.34-2.92a7 7 0 0 0 1.72-1l2.54 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z" />
+    </svg>
+  );
+}
+
+function InlineNotification({
+  notification,
+  visible,
+  onDismiss,
+}: {
+  notification: InboxNotification | null;
+  visible: boolean;
+  onDismiss: () => void;
+}) {
+  if (!notification) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        "shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
+        visible ? "max-h-48 opacity-100 translate-y-0" : "pointer-events-none max-h-0 opacity-0 translate-y-4",
+      )}
+      aria-hidden={!visible}
+    >
+      <div
+        className={cn(
+          "envelope-inline-notification flex items-start gap-4 rounded-[1.25rem] px-5 py-4",
+          notification.tone === "success"
+            ? "envelope-inline-notification-success"
+            : "envelope-inline-notification-danger",
+        )}
+        role={notification.ariaRole}
+        aria-live={visible ? notification.ariaLive : "off"}
+      >
+        <div
+          className={cn(
+            "min-w-0 flex-1 transition-[opacity,transform] duration-200 ease-out",
+            visible ? "translate-y-0 opacity-100 delay-100" : "translate-y-2 opacity-0",
+          )}
+        >
+          <p className="text-sm font-medium tracking-[0.01em] text-pretty sm:text-[0.95rem]">
+            {notification.message}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onDismiss}
+          className={cn(
+            "envelope-inline-notification-dismiss rounded-full p-1.5 transition-[opacity,transform] duration-200 ease-out",
+            visible ? "translate-y-0 opacity-100 delay-150" : "translate-y-2 opacity-0",
+          )}
+          aria-label="Dismiss notification"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <path d="m4 4 8 8" />
+            <path d="m12 4-8 8" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function InboxApp({
   userId,
   initialAccountId,
+  initialThreadId,
   initialSettings,
   accounts,
   initialThreads,
 }: InboxAppProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeAccountId, setActiveAccountId] = useState<string | null>(initialAccountId);
   const [threads, setThreads] = useState(initialThreads);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
+  const [activePreviewThreadId, setActivePreviewThreadId] = useState<string | null>(
+    initialThreadId ?? initialThreads[0]?.id ?? null,
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [renderedNotification, setRenderedNotification] = useState<InboxNotification | null>(null);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<InboxThread[] | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
+  const [shellWidth, setShellWidth] = useState(0);
+  const [railExpanded, setRailExpanded] = useState(false);
+  const [previewPanePreferredWidth, setPreviewPanePreferredWidth] = useState<number>(
+    PREVIEW_PANE_DEFAULT_WIDTH,
+  );
 
   const keybindingManagerRef = useRef(new KeybindingManager());
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const initialThreadIdRef = useRef(initialThreadId);
+  const previousAccountIdRef = useRef(initialAccountId);
+  const lastSyncedInboxHrefRef = useRef<string | null>(null);
+  const markReadRequestKeysRef = useRef(new Set<string>());
+  const stopPreviewResizeRef = useRef<(() => void) | null>(null);
 
-  const isLight = settings.theme === "light";
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const activeSearchQuery = deferredSearchQuery.trim();
+  const hydrated = useHydrated();
+  const activeNotification = useMemo<InboxNotification | null>(() => {
+    if (errorMessage) {
+      return {
+        tone: "danger",
+        message: errorMessage,
+        ariaRole: "alert",
+        ariaLive: "assertive",
+      };
+    }
+
+    if (statusMessage) {
+      return {
+        tone: "success",
+        message: statusMessage,
+        ariaRole: "status",
+        ariaLive: "polite",
+      };
+    }
+
+    return null;
+  }, [errorMessage, statusMessage]);
+  const activeNotificationKey = activeNotification
+    ? `${activeNotification.tone}:${activeNotification.message}`
+    : null;
+
+  useDocumentTheme(settings.theme);
+
+  useEffect(() => {
+    const onSettingsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<UserSettings>).detail;
+      if (!detail) {
+        return;
+      }
+
+      setSettings(detail);
+    };
+
+    window.addEventListener("envelope:settings:updated", onSettingsUpdated as EventListener);
+    return () => {
+      window.removeEventListener("envelope:settings:updated", onSettingsUpdated as EventListener);
+    };
+  }, []);
 
   const refreshInboxThreads = useCallback(async (accountId: string) => {
     try {
@@ -187,7 +471,7 @@ export function InboxApp({
       }
 
       const payload = (await response.json()) as {
-        items: Array<Omit<InboxThread, "lastMessageAt"> & { lastMessageAt: string }>;
+        items: InboxThread[];
       };
 
       setThreads(payload.items);
@@ -197,9 +481,59 @@ export function InboxApp({
   }, []);
 
   useEffect(() => {
+    setActiveAccountId(initialAccountId);
+    markReadRequestKeysRef.current.clear();
+  }, [initialAccountId]);
+
+  useEffect(() => {
+    setPreviewPanePreferredWidth(readStoredPreviewPaneWidth());
+  }, []);
+
+  useEffect(() => {
+    initialThreadIdRef.current = initialThreadId;
+  }, [initialThreadId]);
+
+  useEffect(() => {
     setThreads(initialThreads);
-    setSelectedThreadIds([]);
-  }, [initialThreads, activeAccountId]);
+
+    const accountChanged = previousAccountIdRef.current !== activeAccountId;
+    previousAccountIdRef.current = activeAccountId;
+
+    const initialThreadIds = new Set(initialThreads.map((thread) => thread.id));
+
+    if (accountChanged) {
+      setSelectedThreadIds([]);
+      setActivePreviewThreadId(() => {
+        if (initialThreadId && initialThreadIds.has(initialThreadId)) {
+          return initialThreadId;
+        }
+
+        return initialThreads[0]?.id ?? null;
+      });
+      return;
+    }
+
+    setSelectedThreadIds((current) => {
+      if (!current.length) {
+        return current;
+      }
+
+      const next = current.filter((threadId) => initialThreadIds.has(threadId));
+      return next.length === current.length ? current : next;
+    });
+
+    setActivePreviewThreadId((current) => {
+      if (current && initialThreadIds.has(current)) {
+        return current;
+      }
+
+      if (initialThreadId && initialThreadIds.has(initialThreadId)) {
+        return initialThreadId;
+      }
+
+      return initialThreads[0]?.id ?? null;
+    });
+  }, [activeAccountId, initialThreadId, initialThreads]);
 
   useEffect(() => {
     if (!activeAccountId) {
@@ -230,7 +564,7 @@ export function InboxApp({
           const progress = payload.progress ?? null;
           setSyncProgress(progress);
 
-          if (activeAccountId && !searchQuery.trim() && (progress?.inProgress || progress?.processed)) {
+          if (activeAccountId && !activeSearchQuery && (progress?.inProgress || progress?.processed)) {
             await refreshInboxThreads(activeAccountId);
           }
         }
@@ -248,11 +582,10 @@ export function InboxApp({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeAccountId, refreshInboxThreads, searchQuery]);
+  }, [activeAccountId, activeSearchQuery, refreshInboxThreads]);
 
   useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query || !activeAccountId) {
+    if (!activeSearchQuery || !activeAccountId) {
       setSearchResults(null);
       return;
     }
@@ -262,14 +595,14 @@ export function InboxApp({
       void (async () => {
         try {
           const response = await fetch(
-            `/api/search?accountId=${encodeURIComponent(activeAccountId)}&q=${encodeURIComponent(query)}&page=1`,
+            `/api/search?accountId=${encodeURIComponent(activeAccountId)}&q=${encodeURIComponent(activeSearchQuery)}&page=1`,
           );
           if (!response.ok) {
             return;
           }
 
           const payload = (await response.json()) as {
-            items: Array<Omit<InboxThread, "lastMessageAt"> & { lastMessageAt: string }>;
+            items: InboxThread[];
           };
 
           if (!cancelled) {
@@ -279,13 +612,32 @@ export function InboxApp({
           // Ignore search failures.
         }
       })();
-    }, 180);
+    }, 150);
 
     return () => {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [activeAccountId, searchQuery]);
+  }, [activeAccountId, activeSearchQuery]);
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const update = () => {
+      setShellWidth(shell.clientWidth);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(shell);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const list = listRef.current;
@@ -305,6 +657,13 @@ export function InboxApp({
       observer.disconnect();
     };
   }, []);
+
+  useEffect(
+    () => () => {
+      stopPreviewResizeRef.current?.();
+    },
+    [],
+  );
 
   useEffect(() => {
     const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
@@ -349,9 +708,82 @@ export function InboxApp({
       setSettings(response);
       window.dispatchEvent(new CustomEvent("envelope:settings:updated", { detail: response }));
     } catch (error) {
+      setStatusMessage(null);
       setErrorMessage(error instanceof Error ? error.message : "Failed to save settings");
     }
   }, []);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    if (activeNotification) {
+      setNotificationVisible(false);
+      setRenderedNotification(activeNotification);
+      frameId = window.requestAnimationFrame(() => {
+        setNotificationVisible(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(frameId);
+      };
+    }
+
+    setNotificationVisible(false);
+    return undefined;
+  }, [activeNotification, activeNotificationKey]);
+
+  useEffect(() => {
+    if (activeNotification || notificationVisible || !renderedNotification) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRenderedNotification(null);
+    }, 260);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeNotification, notificationVisible, renderedNotification]);
+
+  const setUnreadCountForThreads = useCallback((threadIds: string[], unreadCount: number) => {
+    const selected = new Set(threadIds);
+
+    setThreads((previous) =>
+      previous.map((thread) =>
+        selected.has(thread.id)
+          ? {
+              ...thread,
+              unreadCount,
+            }
+          : thread,
+      ),
+    );
+
+    setSearchResults((previous) =>
+      previous
+        ? previous.map((thread) =>
+            selected.has(thread.id)
+              ? {
+                  ...thread,
+                  unreadCount,
+                }
+              : thread,
+          )
+        : previous,
+    );
+  }, []);
+
+  const markThreadsRead = useCallback(
+    async (accountId: string, threadIds: string[]) => {
+      setUnreadCountForThreads(threadIds, 0);
+      return jsonPost<{ jobId: string }>("/api/actions/mark-read", {
+        accountId,
+        threadIds,
+      });
+    },
+    [setUnreadCountForThreads],
+  );
 
   const commandContext = useMemo(
     () =>
@@ -414,13 +846,172 @@ export function InboxApp({
     [accounts],
   );
 
-  const visibleThreads = searchQuery.trim() ? (searchResults ?? []) : threads;
+  const visibleThreads = activeSearchQuery ? (searchResults ?? []) : threads;
+  const currentUrlAccountId = searchParams.get("accountId");
+  const currentUrlThreadId = searchParams.get("threadId");
+  const currentUrlModal = searchParams.get("modal");
+  const activeModal = currentUrlModal === "settings" ? "settings" : null;
+  const settingsDialogOpen = activeModal === "settings";
   const syncProgressAgeMs = syncProgress?.updatedAt
     ? Date.now() - new Date(syncProgress.updatedAt).getTime()
     : null;
   const syncLooksStale = Boolean(
     syncProgress?.inProgress && syncProgressAgeMs != null && syncProgressAgeMs > 60_000,
   );
+  const buildInboxHref = useCallback(
+    (accountId: string | null, threadId?: string | null, modal?: "settings" | null): Route => {
+      const params = new URLSearchParams();
+
+      if (accountId) {
+        params.set("accountId", accountId);
+      }
+
+      if (threadId) {
+        params.set("threadId", threadId);
+      }
+
+      if (modal) {
+        params.set("modal", modal);
+      }
+
+      const query = params.toString();
+      return (query ? `/inbox?${query}` : "/inbox") as Route;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!visibleThreads.length) {
+      setSelectedThreadIds([]);
+      setActivePreviewThreadId(null);
+      return;
+    }
+
+    const visibleIds = new Set(visibleThreads.map((thread) => thread.id));
+
+    setSelectedThreadIds((current) => {
+      if (!current.length) {
+        return current;
+      }
+
+      const next = current.filter((threadId) => visibleIds.has(threadId));
+      return next.length === current.length ? current : next;
+    });
+
+    setActivePreviewThreadId((current) => {
+      if (currentUrlThreadId && visibleIds.has(currentUrlThreadId)) {
+        return currentUrlThreadId;
+      }
+
+      if (current && visibleIds.has(current)) {
+        return current;
+      }
+
+      const initialThreadCandidate = initialThreadIdRef.current;
+      if (initialThreadCandidate && visibleIds.has(initialThreadCandidate)) {
+        initialThreadIdRef.current = null;
+        return initialThreadCandidate;
+      }
+
+      return visibleThreads[0]?.id ?? null;
+    });
+  }, [currentUrlThreadId, visibleThreads]);
+
+  useEffect(() => {
+    setScrollTop(0);
+    listRef.current?.scrollTo({ top: 0 });
+  }, [activeSearchQuery, activeAccountId]);
+
+  const openThread = useCallback(
+    (threadId: string, accountId: string) => {
+      router.push(`/thread/${threadId}?accountId=${accountId}` as Route);
+    },
+    [router],
+  );
+
+  const navigate = useCallback(
+    (href: string) => {
+      if (href.startsWith("/api/")) {
+        window.location.href = href;
+        return;
+      }
+
+      router.push(href as Route);
+    },
+    [router],
+  );
+
+  const openSettingsDialog = useCallback(() => {
+    navigate(buildInboxHref(activeAccountId, activePreviewThreadId, "settings"));
+  }, [activeAccountId, activePreviewThreadId, buildInboxHref, navigate]);
+
+  const closeSettingsDialog = useCallback(() => {
+    const nextHref = buildInboxHref(activeAccountId, activePreviewThreadId, null);
+    lastSyncedInboxHrefRef.current = nextHref;
+    router.replace(nextHref, { scroll: false });
+  }, [activeAccountId, activePreviewThreadId, buildInboxHref, router]);
+
+  useEffect(() => {
+    if (!activeAccountId) {
+      return;
+    }
+
+    const selectedThreadId = activePreviewThreadId;
+
+    // Wait for the selection effect to settle before mirroring it into the URL.
+    if (!selectedThreadId && visibleThreads.length > 0) {
+      return;
+    }
+
+    if (
+      currentUrlAccountId === activeAccountId &&
+      (currentUrlThreadId ?? null) === selectedThreadId &&
+      activeModal === currentUrlModal
+    ) {
+      lastSyncedInboxHrefRef.current = buildInboxHref(activeAccountId, selectedThreadId, activeModal);
+      return;
+    }
+
+    const nextHref = buildInboxHref(activeAccountId, selectedThreadId, activeModal);
+    if (lastSyncedInboxHrefRef.current === nextHref) {
+      return;
+    }
+
+    lastSyncedInboxHrefRef.current = nextHref;
+    router.replace(nextHref, { scroll: false });
+  }, [
+    activeAccountId,
+    activeModal,
+    buildInboxHref,
+    currentUrlAccountId,
+    currentUrlModal,
+    currentUrlThreadId,
+    router,
+    activePreviewThreadId,
+    visibleThreads.length,
+  ]);
+
+  useEffect(() => {
+    if (!activeAccountId || !visibleThreads.length) {
+      return;
+    }
+
+    const selectedIndex = visibleThreads.findIndex((thread) => thread.id === activePreviewThreadId);
+    const targetIndexes =
+      selectedIndex >= 0
+        ? [selectedIndex - 1, selectedIndex, selectedIndex + 1, selectedIndex + 2]
+        : [0, 1, 2];
+
+    for (const index of targetIndexes) {
+      const thread = visibleThreads[index];
+      if (!thread) {
+        continue;
+      }
+
+      warmThreadPreview(activeAccountId, thread.id);
+      void router.prefetch(`/thread/${thread.id}?accountId=${activeAccountId}` as Route);
+    }
+  }, [activeAccountId, activePreviewThreadId, router, visibleThreads]);
 
   const commandRegistry = useMemo(() => {
     const registry = new CommandRegistry();
@@ -436,24 +1027,23 @@ export function InboxApp({
         contrast?: "standard" | "high";
         hideRareLabels?: boolean;
       }) => updateSettings(next),
-      openThread: (threadId: string, accountId: string) => {
-        window.location.href = `/thread/${threadId}?accountId=${accountId}`;
+      openSettings: () => {
+        openSettingsDialog();
       },
-      navigate: (href: string) => {
-        window.location.href = href;
-      },
+      openThread,
+      navigate,
       switchAccount: (accountId: string) => {
         setActiveAccountId(accountId);
-        window.location.href = `/inbox?accountId=${accountId}`;
+        router.push(buildInboxHref(accountId));
       },
       selectNextThread: () => {
         if (!visibleThreads.length) {
           return;
         }
 
-        const currentId = selectedThreadIds[0];
+        const currentId = activePreviewThreadId;
         if (!currentId) {
-          setSelectedThreadIds([visibleThreads[0]?.id ?? ""]);
+          setActivePreviewThreadId(visibleThreads[0]?.id ?? null);
           return;
         }
 
@@ -461,7 +1051,7 @@ export function InboxApp({
         const nextIndex = Math.min(index + 1, visibleThreads.length - 1);
         const nextId = visibleThreads[nextIndex]?.id;
         if (nextId) {
-          setSelectedThreadIds([nextId]);
+          setActivePreviewThreadId(nextId);
         }
       },
       selectPreviousThread: () => {
@@ -469,9 +1059,9 @@ export function InboxApp({
           return;
         }
 
-        const currentId = selectedThreadIds[0];
+        const currentId = activePreviewThreadId;
         if (!currentId) {
-          setSelectedThreadIds([visibleThreads[0]?.id ?? ""]);
+          setActivePreviewThreadId(visibleThreads[0]?.id ?? null);
           return;
         }
 
@@ -479,7 +1069,7 @@ export function InboxApp({
         const nextIndex = Math.max(index - 1, 0);
         const nextId = visibleThreads[nextIndex]?.id;
         if (nextId) {
-          setSelectedThreadIds([nextId]);
+          setActivePreviewThreadId(nextId);
         }
       },
       archiveThreads: async (accountId: string, threadIds: string[]) => {
@@ -510,23 +1100,7 @@ export function InboxApp({
           threadIds,
         });
       },
-      markRead: async (accountId: string, threadIds: string[]) => {
-        const selected = new Set(threadIds);
-        setThreads((previous) =>
-          previous.map((thread) =>
-            selected.has(thread.id)
-              ? {
-                  ...thread,
-                  unreadCount: 0,
-                }
-              : thread,
-          ),
-        );
-        return jsonPost<{ jobId: string }>("/api/actions/mark-read", {
-          accountId,
-          threadIds,
-        });
-      },
+      markRead: markThreadsRead,
       markUnread: async (accountId: string, threadIds: string[]) => {
         const selected = new Set(threadIds);
         setThreads((previous) =>
@@ -538,6 +1112,18 @@ export function InboxApp({
                 }
               : thread,
           ),
+        );
+        setSearchResults((previous) =>
+          previous
+            ? previous.map((thread) =>
+                selected.has(thread.id)
+                  ? {
+                      ...thread,
+                      unreadCount: Math.max(thread.unreadCount, 1),
+                    }
+                  : thread,
+              )
+            : previous,
         );
         return jsonPost<{ jobId: string }>("/api/actions/mark-unread", {
           accountId,
@@ -602,7 +1188,7 @@ export function InboxApp({
 
     registry.registerMany(buildInboxCommands(run));
     return registry;
-  }, [accounts, selectedThreadIds, updateSettings, visibleThreads]);
+  }, [activePreviewThreadId, buildInboxHref, navigate, openSettingsDialog, openThread, router, updateSettings, visibleThreads]);
 
   const executor = useMemo(
     () =>
@@ -673,6 +1259,7 @@ export function InboxApp({
       },
     });
     if (result.status === "error") {
+      setStatusMessage(null);
       setErrorMessage(result.message);
       return;
     }
@@ -745,19 +1332,50 @@ export function InboxApp({
   };
 
   const activeAccount = accounts.find((account) => account.id === activeAccountId) ?? null;
+  const activePreviewThread = visibleThreads.find((thread) => thread.id === activePreviewThreadId) ?? null;
+  const dismissNotification = useCallback(() => {
+    setNotificationVisible(false);
+    setStatusMessage(null);
+    setErrorMessage(null);
+  }, []);
 
-  const labelFrequency = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const thread of visibleThreads) {
-      for (const labelId of thread.providerLabelIds) {
-        counts.set(labelId, (counts.get(labelId) ?? 0) + 1);
-      }
+  useEffect(() => {
+    if (!activeAccountId || !activePreviewThread || activePreviewThread.unreadCount < 1) {
+      return;
     }
-    return counts;
-  }, [visibleThreads]);
 
-  const rowHeight = settings.density === "compact" ? 72 : 88;
-  const overscan = 6;
+    const requestKey = `${activeAccountId}:${activePreviewThread.id}`;
+    if (markReadRequestKeysRef.current.has(requestKey)) {
+      return;
+    }
+
+    markReadRequestKeysRef.current.add(requestKey);
+
+    void markThreadsRead(activeAccountId, [activePreviewThread.id])
+      .catch(() => {
+        void refreshInboxThreads(activeAccountId);
+      })
+      .finally(() => {
+        markReadRequestKeysRef.current.delete(requestKey);
+      });
+  }, [activeAccountId, activePreviewThread, markThreadsRead, refreshInboxThreads]);
+
+  const maxPreviewPaneWidth = getMaxPreviewPaneWidth(shellWidth);
+  const previewPaneWidth = clampNumber(
+    previewPanePreferredWidth,
+    PREVIEW_PANE_MIN_WIDTH,
+    maxPreviewPaneWidth,
+  );
+  const previewPaneStyle = useMemo(
+    () =>
+      ({
+        "--preview-pane-width": `${previewPaneWidth}px`,
+      }) as CSSProperties,
+    [previewPaneWidth],
+  );
+
+  const rowHeight = settings.density === "compact" ? 64 : 78;
+  const overscan = 8;
   const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
   const endIndex = Math.min(
     visibleThreads.length,
@@ -767,340 +1385,545 @@ export function InboxApp({
   const topSpacer = startIndex * rowHeight;
   const bottomSpacer = (visibleThreads.length - endIndex) * rowHeight;
 
+  const toggleThreadSelection = (threadId: string) => {
+    setSelectedThreadIds((current) =>
+      current.includes(threadId)
+        ? current.filter((id) => id !== threadId)
+        : [...current, threadId],
+    );
+  };
+
+  const commitPreviewPaneWidth = useCallback((nextWidth: number) => {
+    const clampedWidth = clampNumber(nextWidth, PREVIEW_PANE_MIN_WIDTH, maxPreviewPaneWidth);
+    setPreviewPanePreferredWidth(clampedWidth);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PREVIEW_PANE_WIDTH_STORAGE_KEY, String(Math.round(clampedWidth)));
+    }
+  }, [maxPreviewPaneWidth]);
+
+  const updatePreviewPaneWidthFromPointer = useCallback((clientX: number) => {
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const bounds = shell.getBoundingClientRect();
+    commitPreviewPaneWidth(bounds.right - clientX);
+  }, [commitPreviewPaneWidth]);
+
+  const handlePreviewResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const onMove = (pointerEvent: PointerEvent) => {
+        updatePreviewPaneWidthFromPointer(pointerEvent.clientX);
+      };
+
+      const stop = () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", stop);
+        window.removeEventListener("pointercancel", stop);
+        stopPreviewResizeRef.current = null;
+      };
+
+      stopPreviewResizeRef.current?.();
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", stop);
+      window.addEventListener("pointercancel", stop);
+      stopPreviewResizeRef.current = stop;
+
+      updatePreviewPaneWidthFromPointer(event.clientX);
+    },
+    [updatePreviewPaneWidthFromPointer],
+  );
+
+  const handlePreviewResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        commitPreviewPaneWidth(previewPaneWidth + PREVIEW_PANE_KEYBOARD_STEP);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        commitPreviewPaneWidth(previewPaneWidth - PREVIEW_PANE_KEYBOARD_STEP);
+        return;
+      }
+
+      if (event.key === "Home") {
+        event.preventDefault();
+        commitPreviewPaneWidth(PREVIEW_PANE_MIN_WIDTH);
+        return;
+      }
+
+      if (event.key === "End") {
+        event.preventDefault();
+        commitPreviewPaneWidth(maxPreviewPaneWidth);
+      }
+    },
+    [commitPreviewPaneWidth, maxPreviewPaneWidth, previewPaneWidth],
+  );
+
+  const handleRailBlurCapture = useCallback((event: ReactFocusEvent<HTMLElement>) => {
+    const nextTarget = event.relatedTarget as Node | null;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+
+    setRailExpanded(false);
+  }, []);
+
+  const railHeaderRevealClassName = cn(
+    "hidden overflow-hidden xl:block xl:transition-[max-width,opacity,transform] xl:duration-300 xl:ease-out",
+    railExpanded ? "xl:max-w-[9.5rem] xl:translate-x-0 xl:opacity-100" : "xl:-translate-x-2 xl:max-w-0 xl:opacity-0",
+  );
+  const railDetailRevealClassName = cn(
+    "overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
+    railExpanded ? "max-h-40 translate-y-0 opacity-100" : "max-h-0 translate-y-3 opacity-0",
+  );
+
   return (
     <div
       className={cn(
-        "grid min-h-dvh grid-rows-[auto,1fr]",
+        "flex h-dvh flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-4",
         settings.contrast === "high" ? "envelope-contrast-high" : "",
-        isLight ? "bg-stone-100 text-stone-900" : "bg-stone-950 text-stone-100",
       )}
     >
-      <header
-        className={cn(
-          "z-nav border-b px-4 py-3",
-          isLight ? "border-stone-300 bg-stone-50/95" : "border-stone-800 bg-stone-900/95",
-        )}
+      <a
+        href="#inbox-main"
+        className="envelope-button-secondary sr-only absolute left-4 top-4 z-nav rounded-lg px-3 py-2 text-sm font-medium focus:not-sr-only"
       >
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
-          <div>
-            <p className={cn("text-xs uppercase", isLight ? "text-stone-500" : "text-stone-500")}>Envelope</p>
-            <h1 className="text-2xl font-semibold text-balance">Inbox</h1>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="sr-only" htmlFor="search-inbox">
-              Search inbox
-            </label>
-            <input
-              id="search-inbox"
-              ref={searchRef}
-              placeholder="Search subject/snippet"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className={cn(
-                "w-56 rounded-lg border px-2 py-1.5 text-sm",
-                isLight
-                  ? "border-stone-300 bg-white text-stone-900"
-                  : "border-stone-700 bg-stone-950 text-stone-100",
-              )}
-            />
-
-            <label className="sr-only" htmlFor="active-account">
-              Active account
-            </label>
-            <select
-              id="active-account"
-              value={activeAccountId ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                setActiveAccountId(value || null);
-                window.location.href = value ? `/inbox?accountId=${value}` : "/inbox";
-              }}
-              className={cn(
-                "rounded-lg border px-2 py-1.5 text-sm",
-                isLight
-                  ? "border-stone-300 bg-white text-stone-900"
-                  : "border-stone-700 bg-stone-950 text-stone-100",
-              )}
-            >
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.email} ({account.status})
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              onClick={() => {
-                void updateSettings({ theme: settings.theme === "dark" ? "light" : "dark" });
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              {settings.theme === "dark" ? "Light" : "Dark"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void updateSettings({
-                  density: settings.density === "comfortable" ? "compact" : "comfortable",
-                });
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              {settings.density === "comfortable" ? "Compact" : "Comfortable"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void updateSettings({ keymap: settings.keymap === "superhuman" ? "vim" : "superhuman" });
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              {settings.keymap === "superhuman" ? "Vim" : "Superhuman"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void updateSettings({ contrast: settings.contrast === "high" ? "standard" : "high" });
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              {settings.contrast === "high" ? "Standard Contrast" : "High Contrast"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void updateSettings({ hideRareLabels: !settings.hideRareLabels });
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              {settings.hideRareLabels ? "Show Rare Labels" : "Hide Rare Labels"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (activeAccountId) {
-                  window.location.href = `/compose?accountId=${activeAccountId}`;
-                  return;
-                }
-                window.location.href = "/compose";
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              Compose
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = "/diagnostics";
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              Diagnostics
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = "/settings";
-              }}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs uppercase",
-                isLight ? "border-stone-300" : "border-stone-700",
-              )}
-            >
-              Settings
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-7xl px-4 py-4">
+        Skip to Inbox
+      </a>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
         {activeAccount?.status === "needs_reauth" ? (
-          <div className="mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-200 text-pretty">
-            Account requires reauthentication. Open diagnostics to reconnect.
+          <div
+            className="envelope-status-warning rounded-lg px-4 py-3 text-sm text-pretty"
+            role="status"
+            aria-live="polite"
+          >
+            Account requires reauthentication. Open diagnostics to reconnect this inbox.
           </div>
         ) : null}
 
-        {syncProgress?.inProgress ? (
-          <div className="mb-3 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-100">
-            <p>
-              Syncing {prettySyncPhase(syncProgress.phase)}: {syncProgress.processed}
-              {syncProgress.target ? ` / ${syncProgress.target}` : ""}
-            </p>
-            <p className="mt-1 text-xs text-blue-200/80">
-              Threads appear in the inbox as they arrive. You can keep using the app while sync
-              continues in the background.
-            </p>
-            {syncLooksStale ? (
-              <p className="mt-1 text-xs text-amber-200">
-                No sync update for over a minute. Open diagnostics to inspect the queue or retry the
-                account sync.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
+        <div ref={shellRef} className="relative isolate flex min-h-0 flex-1 flex-col gap-3 xl:flex-row xl:gap-0">
+          <div
+            aria-hidden="true"
+            className={cn(
+              "envelope-rail-veil pointer-events-none absolute inset-0 z-base hidden rounded-[1.75rem] transition-opacity duration-300 xl:block",
+              railExpanded ? "opacity-100" : "opacity-0",
+            )}
+          />
 
-        {errorMessage ? (
-          <div className="mb-3 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200 text-pretty">
-            {errorMessage}
-          </div>
-        ) : null}
-
-        {statusMessage ? (
-          <div className="mb-3 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 text-pretty">
-            {statusMessage}
-          </div>
-        ) : null}
-
-        <div
-          className={cn(
-            "rounded-2xl border",
-            isLight ? "border-stone-300 bg-white" : "border-stone-800 bg-stone-900/80",
-          )}
-        >
-          {visibleThreads.length === 0 ? (
-            <div className={cn("px-4 py-12 text-center text-pretty", isLight ? "text-stone-500" : "text-stone-400")}>
-              <p className="text-lg text-balance">No threads yet</p>
-              <p className="mt-1 text-sm">
-                {searchQuery.trim()
-                  ? "No threads match your search."
-                  : syncProgress?.inProgress
-                    ? "Initial sync is running. Threads will appear here in batches as they are ingested."
-                    : "Connect Gmail and run initial sync from settings."}
-              </p>
-            </div>
-          ) : (
+          <aside
+            className="relative flex flex-none xl:mr-3 xl:h-full xl:w-[4.75rem]"
+            onMouseEnter={() => setRailExpanded(true)}
+            onMouseLeave={() => setRailExpanded(false)}
+            onFocusCapture={() => setRailExpanded(true)}
+            onBlurCapture={handleRailBlurCapture}
+          >
             <div
-              ref={listRef}
-              onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-              className="h-[calc(100dvh-15rem)] overflow-y-auto"
+              className={cn(
+                "envelope-rail z-nav flex w-full rounded-[1.25rem] p-3 transition-[width,box-shadow,background-color] duration-300 ease-out xl:absolute xl:inset-y-0 xl:left-0 xl:w-[4.75rem] xl:flex-col xl:justify-between xl:overflow-hidden",
+                railExpanded ? "xl:w-[18rem] xl:shadow-[0_34px_90px_-42px_oklch(0_0_0_/_0.95)]" : "xl:shadow-none",
+              )}
             >
-              <ul role="listbox" aria-label="Thread list">
-                {topSpacer > 0 ? <li style={{ height: topSpacer }} aria-hidden /> : null}
+              <div className="flex items-center gap-3 xl:flex-col xl:items-stretch">
+                <div className="flex items-center gap-3">
+                  <div className="envelope-brand-mark flex size-12 shrink-0 items-center justify-center rounded-xl">
+                    <EnvelopeMark />
+                  </div>
+                  <div className={railHeaderRevealClassName}>
+                    <p className="text-sm font-semibold tracking-[0.01em]">Envelope</p>
+                    <p className="envelope-text-soft mt-0.5 text-xs">Mail cockpit</p>
+                  </div>
+                </div>
 
-                {virtualThreads.map((thread) => {
-                  const selected = selectedThreadIds.includes(thread.id);
-                  const labels = thread.providerLabelIds
-                    .filter((labelId) => {
-                      if (isSystemLabel(labelId)) {
-                        return true;
-                      }
-                      if (!settings.hideRareLabels) {
-                        return true;
-                      }
-                      return (labelFrequency.get(labelId) ?? 0) >= 2;
-                    })
-                    .slice(0, 4);
+                <nav aria-label="Primary" className="flex gap-2 xl:mt-4 xl:flex-col">
+                  <RailLink
+                    active
+                    ariaLabel="Open inbox"
+                    label="Inbox"
+                    expanded={railExpanded}
+                    href={buildInboxHref(activeAccountId)}
+                  >
+                    <InboxIcon />
+                  </RailLink>
+                  <RailLink
+                    ariaLabel="Compose message"
+                    label="Compose"
+                    expanded={railExpanded}
+                    href={(activeAccountId ? `/compose?accountId=${activeAccountId}` : "/compose") as Route}
+                  >
+                    <ComposeIcon />
+                  </RailLink>
+                  <RailLink
+                    ariaLabel="Open diagnostics"
+                    label="Diagnostics"
+                    expanded={railExpanded}
+                    href={"/diagnostics" as Route}
+                  >
+                    <DiagnosticsIcon />
+                  </RailLink>
+                  <RailLink
+                    active={settingsDialogOpen}
+                    ariaLabel="Open settings"
+                    label="Settings"
+                    expanded={railExpanded}
+                    href={buildInboxHref(activeAccountId, activePreviewThreadId, "settings")}
+                  >
+                    <SettingsIcon />
+                  </RailLink>
+                </nav>
+              </div>
 
-                  return (
-                    <li key={thread.id} aria-selected={selected} style={{ height: rowHeight }}>
+              <div className="hidden xl:block">
+                <div className={railDetailRevealClassName}>
+                  <p className="envelope-text-muted truncate text-xs font-medium">
+                    {activeAccount?.email ?? "No account"}
+                  </p>
+                  <p className="envelope-text-soft mt-1 text-[11px]">
+                    {settings.keymap === "vim" ? "Vim" : "Superhuman"} keymap
+                  </p>
+                  <div className="envelope-panel-strong envelope-text-muted mt-3 rounded-xl px-3 py-2 text-xs">
+                    <p>
+                      <kbd className="envelope-kbd rounded-lg px-1.5 py-0.5 font-mono">Cmd</kbd>+
+                      <kbd className="envelope-kbd ml-1 rounded-lg px-1.5 py-0.5 font-mono">K</kbd>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <main
+            id="inbox-main"
+            className="envelope-panel flex min-h-[30rem] min-w-0 flex-1 flex-col overflow-hidden rounded-lg xl:min-h-0"
+          >
+            <div className="envelope-panel-muted envelope-divider border-b px-4 pb-4 pt-5 lg:px-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="envelope-text-soft text-xs font-medium uppercase">
+                    {activeAccount?.email ?? "Envelope"}
+                  </p>
+                  <h1 className="mt-2 text-[2rem] font-semibold leading-none text-balance">Inbox</h1>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
+                    {activeSearchQuery ? `${visibleThreads.length} results` : `${visibleThreads.length} threads`}
+                  </span>
+                  <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
+                    {selectedThreadIds.length} selected
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                <div>
+                  <label className="sr-only" htmlFor="search-inbox">
+                    Search inbox
+                  </label>
+                  <input
+                    id="search-inbox"
+                    name="search"
+                    ref={searchRef}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Search subject, snippet, or sender…"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="sr-only" htmlFor="active-account">
+                    Active account
+                  </label>
+                  <select
+                    id="active-account"
+                    value={activeAccountId ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setActiveAccountId(value || null);
+                      navigate(buildInboxHref(value || null));
+                    }}
+                    className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
+                  >
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.email} ({account.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {syncProgress?.inProgress ? (
+                  <span
+                    className="envelope-status-info rounded-lg px-3 py-1 text-xs font-medium"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    Syncing {prettySyncPhase(syncProgress.phase)} {syncProgress.processed}
+                    {syncProgress.target ? ` / ${syncProgress.target}` : ""}
+                  </span>
+                ) : null}
+                {syncLooksStale ? (
+                  <span className="envelope-status-warning rounded-lg px-3 py-1 text-xs font-medium">
+                    Sync looks stale
+                  </span>
+                ) : null}
+                <span
+                  className={cn(
+                    "rounded-lg px-3 py-1 text-xs font-medium",
+                    activeAccount?.status === "ok"
+                      ? "envelope-status-success"
+                      : activeAccount?.status === "syncing"
+                        ? "envelope-status-info"
+                        : activeAccount?.status === "needs_reauth"
+                          ? "envelope-status-warning"
+                          : "envelope-pill",
+                  )}
+                >
+                  {activeAccount?.status ?? "No account"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPaletteOpen(true)}
+                  className="envelope-button-secondary rounded-lg px-3 py-1 text-xs font-medium transition-colors"
+                >
+                  Command Palette
+                </button>
+              </div>
+            </div>
+
+            {visibleThreads.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center px-6 py-12 text-center">
+                <div className="envelope-text-muted max-w-md">
+                  <p className="text-xl font-semibold text-balance text-[var(--color-text)] lg:text-2xl">
+                    {activeSearchQuery ? "No threads match this search." : "No threads yet"}
+                  </p>
+                  <p className="mt-3 text-sm text-pretty">
+                    {activeSearchQuery
+                      ? "Try a sender name, a tighter phrase, or clear the search field to return to the full inbox."
+                      : syncProgress?.inProgress
+                        ? "Initial sync is running. Threads will appear here in batches as they land."
+                        : "Connect Gmail and start a sync to populate the inbox."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    {activeSearchQuery ? (
                       <button
                         type="button"
-                        onClick={(event) => {
-                          if (event.metaKey || event.ctrlKey) {
-                            setSelectedThreadIds((current) => {
-                              if (current.includes(thread.id)) {
-                                return current.filter((id) => id !== thread.id);
-                              }
-                              return [...current, thread.id];
-                            });
-                            return;
-                          }
-
-                          setSelectedThreadIds([thread.id]);
-                          if (activeAccountId) {
-                            window.location.href = `/thread/${thread.id}?accountId=${activeAccountId}`;
-                          }
-                        }}
-                        className={cn(
-                          "grid h-full w-full grid-cols-[auto,1fr,auto] items-center gap-3 px-4 text-left",
-                          selected
-                            ? "bg-amber-500/15"
-                            : isLight
-                              ? "hover:bg-stone-100"
-                              : "hover:bg-stone-800",
-                          settings.density === "compact" ? "py-2" : "py-3",
-                        )}
+                        onClick={() => setSearchQuery("")}
+                        className="envelope-button-secondary rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                       >
-                        <span
-                          className={cn(
-                            "size-2 rounded-full",
-                            thread.unreadCount > 0
-                              ? "bg-amber-400"
-                              : isLight
-                                ? "bg-stone-300"
-                                : "bg-stone-700",
-                          )}
-                        />
-                        <span>
-                          <span className="block truncate text-sm font-medium">{thread.subject}</span>
-                          <span className={cn("block truncate text-xs", isLight ? "text-stone-600" : "text-stone-400")}>
-                            {thread.snippet}
-                          </span>
-                          {labels.length > 0 ? (
-                            <span className="mt-1 flex flex-wrap gap-1">
-                              {labels.map((labelId) => (
-                                <span
-                                  key={`${thread.id}-${labelId}`}
-                                  className={cn(
-                                    "rounded border px-1.5 py-0.5 text-[10px] uppercase",
-                                    isLight
-                                      ? "border-stone-300 bg-stone-100 text-stone-700"
-                                      : "border-stone-700 bg-stone-800 text-stone-300",
-                                  )}
-                                >
-                                  {prettyLabel(labelId)}
-                                </span>
-                              ))}
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className={cn("text-xs tabular-nums", isLight ? "text-stone-500" : "text-stone-400")}>
-                          {new Date(thread.lastMessageAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                        Clear Search
                       </button>
-                    </li>
-                  );
-                })}
+                    ) : (
+                      <Link
+                        href={"/diagnostics" as Route}
+                        className="envelope-button-secondary rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                      >
+                        Open Diagnostics
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                ref={listRef}
+                onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+                className="flex-1 overflow-y-auto"
+                aria-busy={syncProgress?.inProgress ? "true" : "false"}
+              >
+                <ul role="listbox" aria-label="Thread list">
+                  {topSpacer > 0 ? <li style={{ height: topSpacer }} aria-hidden /> : null}
 
-                {bottomSpacer > 0 ? <li style={{ height: bottomSpacer }} aria-hidden /> : null}
-              </ul>
-            </div>
-          )}
+                  {virtualThreads.map((thread) => {
+                    const checked = selectedThreadIds.includes(thread.id);
+                    const previewed = activePreviewThreadId === thread.id;
+
+                    return (
+                      <li
+                        key={thread.id}
+                        aria-selected={previewed}
+                        style={{ height: rowHeight }}
+                        className="envelope-divider border-b"
+                      >
+                        <div
+                          className={cn(
+                            "relative grid h-full grid-cols-[auto,1fr] gap-3 px-4 lg:px-5",
+                            previewed ? "envelope-row-selected" : "envelope-row-hover",
+                          )}
+                        >
+                          {previewed ? (
+                            <span
+                              aria-hidden
+                              className="absolute inset-y-3 left-0 w-1 rounded-r-lg bg-[var(--color-accent)]"
+                            />
+                          ) : null}
+
+                          <div className="flex items-center">
+                            <label className="group/checkbox relative flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${thread.subject || "thread"}`}
+                                checked={checked}
+                                onChange={() => toggleThreadSelection(thread.id)}
+                                className="peer sr-only"
+                              />
+                              <span
+                                aria-hidden
+                                className="flex size-4 items-center justify-center rounded-[2px] border border-[var(--color-border-strong)] bg-transparent text-[var(--color-accent-strong)] transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-focus)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--color-panel)] peer-checked:border-[var(--color-accent)] peer-checked:bg-[var(--color-accent-surface)] peer-checked:[&_svg]:opacity-100 group-hover/checkbox:border-[var(--color-text-soft)]"
+                              >
+                                <svg
+                                  viewBox="0 0 16 16"
+                                  className="size-3 opacity-0 transition-opacity"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  aria-hidden="true"
+                                >
+                                  <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                                </svg>
+                              </span>
+                            </label>
+                          </div>
+
+                          <button
+                            type="button"
+                            onMouseEnter={() => {
+                              if (!activeAccountId) {
+                                return;
+                              }
+
+                              warmThreadPreview(activeAccountId, thread.id);
+                              void router.prefetch(`/thread/${thread.id}?accountId=${activeAccountId}` as Route);
+                            }}
+                            onFocus={() => {
+                              if (!activeAccountId) {
+                                return;
+                              }
+
+                              warmThreadPreview(activeAccountId, thread.id);
+                              void router.prefetch(`/thread/${thread.id}?accountId=${activeAccountId}` as Route);
+                            }}
+                            onClick={(event) => {
+                              if (event.metaKey || event.ctrlKey) {
+                                toggleThreadSelection(thread.id);
+                                return;
+                              }
+
+                              setActivePreviewThreadId(thread.id);
+                            }}
+                            onDoubleClick={() => {
+                              if (activeAccountId) {
+                                openThread(thread.id, activeAccountId);
+                              }
+                            }}
+                            className="min-w-0 touch-manipulation text-left"
+                          >
+                            <div className="flex h-full items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="md:grid md:grid-cols-[minmax(8.5rem,11rem)_minmax(0,1fr)] md:items-center md:gap-4">
+                                  <p
+                                    className={cn(
+                                      "truncate text-sm",
+                                      thread.unreadCount > 0 ? "font-semibold" : "font-medium",
+                                    )}
+                                  >
+                                    {formatThreadSender(thread)}
+                                  </p>
+                                  <div className="mt-1 grid min-w-0 grid-cols-[fit-content(100%)_auto_minmax(0,1fr)] items-center gap-x-2 md:mt-0">
+                                    <p
+                                      className={cn(
+                                        "min-w-0 truncate text-sm",
+                                        thread.unreadCount > 0 ? "font-semibold" : "font-medium",
+                                      )}
+                                    >
+                                      {thread.subject || "(No subject)"}
+                                    </p>
+                                    <span className="envelope-text-soft shrink-0 text-xs">
+                                      -
+                                    </span>
+                                    <p className="envelope-text-muted min-w-0 truncate text-sm">
+                                      {thread.snippet || "No preview available"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="ml-4 flex shrink-0 items-center gap-3 pl-2">
+                                <span
+                                  className={cn(
+                                    "size-2 rounded-full",
+                                    thread.unreadCount > 0
+                                      ? "bg-[var(--color-accent)]"
+                                      : "bg-[var(--color-border)]",
+                                  )}
+                                />
+                                <time className="envelope-text-muted text-xs tabular-nums">
+                                  {hydrated
+                                    ? formatInboxTimestamp(thread.lastMessageAt)
+                                    : formatStableInboxTimestamp(thread.lastMessageAt)}
+                                </time>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+
+                  {bottomSpacer > 0 ? <li style={{ height: bottomSpacer }} aria-hidden /> : null}
+                </ul>
+              </div>
+            )}
+          </main>
+
+          <div
+            role="separator"
+            aria-label="Resize preview pane"
+            aria-controls="inbox-preview-pane"
+            aria-orientation="vertical"
+            aria-valuemin={PREVIEW_PANE_MIN_WIDTH}
+            aria-valuemax={maxPreviewPaneWidth}
+            aria-valuenow={previewPaneWidth}
+            tabIndex={0}
+            onDoubleClick={() => commitPreviewPaneWidth(PREVIEW_PANE_DEFAULT_WIDTH)}
+            onPointerDown={handlePreviewResizeStart}
+            onKeyDown={handlePreviewResizeKeyDown}
+            className="hidden touch-none select-none outline-none xl:block xl:w-3 xl:flex-none xl:cursor-col-resize focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-0"
+          />
+
+          <div
+            style={previewPaneStyle}
+            className="flex w-full flex-none flex-col gap-3 xl:h-full xl:w-[var(--preview-pane-width)] xl:min-w-0"
+          >
+            <InboxPreviewPane
+              id="inbox-preview-pane"
+              className="w-full flex-1 min-h-[18rem] lg:min-h-0"
+              accountId={activeAccountId}
+              threadId={activePreviewThread?.id ?? null}
+              summaryThread={activePreviewThread}
+            />
+            <InlineNotification
+              notification={renderedNotification}
+              visible={notificationVisible}
+              onDismiss={dismissNotification}
+            />
+          </div>
         </div>
-      </main>
+      </div>
 
       <CommandPalette
         commands={availableCommands.map((command) => ({
@@ -1114,23 +1937,18 @@ export function InboxApp({
         onExecute={runCommand}
         onResolvePickerItems={onPaletteResolveItems}
       />
+      <SettingsDialog
+        initial={settings}
+        open={settingsDialogOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            openSettingsDialog();
+            return;
+          }
 
-      <div
-        className={cn(
-          "fixed bottom-3 right-3 rounded-lg border px-3 py-2 text-xs",
-          isLight
-            ? "border-stone-300 bg-white text-stone-600"
-            : "border-stone-700 bg-stone-900 text-stone-400",
-        )}
-      >
-        <p>
-          <kbd className={cn("rounded px-1.5 py-0.5 font-mono", isLight ? "bg-stone-100" : "bg-stone-800")}>Cmd</kbd>
-          +
-          <kbd className={cn("rounded px-1.5 py-0.5 font-mono", isLight ? "bg-stone-100" : "bg-stone-800")}>K</kbd>{" "}
-          for commands
-        </p>
-        <p className="mt-1">Selected: {selectedThreadIds.length}</p>
-      </div>
+          closeSettingsDialog();
+        }}
+      />
     </div>
   );
 }

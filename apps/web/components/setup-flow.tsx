@@ -26,11 +26,11 @@ export function SetupFlow({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-4 py-8">
       <header className="mb-8">
-        <p className="text-xs uppercase text-stone-500">Envelope setup</p>
+        <p className="envelope-text-soft text-xs uppercase">Envelope setup</p>
         <h1 className="mt-2 text-4xl font-semibold text-balance">
           {isGmailOnlyFlow ? "Finish Gmail setup" : "Bootstrap your instance"}
         </h1>
-        <p className="mt-2 max-w-2xl text-stone-400 text-pretty">
+        <p className="envelope-text-muted mt-2 max-w-2xl text-pretty">
           {isGmailOnlyFlow
             ? "Your admin account already exists. Add Gmail OAuth credentials so Envelope can connect to Gmail."
             : "Create your local admin account with mandatory TOTP, then provide Gmail OAuth credentials."}
@@ -38,18 +38,18 @@ export function SetupFlow({
       </header>
 
       {error ? (
-        <div className="mb-4 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200 text-pretty">
+        <div className="envelope-status-danger mb-4 rounded-xl px-4 py-3 text-sm text-pretty">
           {error}
         </div>
       ) : null}
 
       {status ? (
-        <div className="mb-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 text-pretty">
+        <div className="envelope-status-success mb-4 rounded-xl px-4 py-3 text-sm text-pretty">
           {status}
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-stone-800 bg-stone-900/80 p-5">
+      <section className="envelope-panel rounded-2xl p-5">
         {step === "user" ? (
           <form
             className="grid gap-4"
@@ -87,7 +87,7 @@ export function SetupFlow({
             <h2 className="text-2xl font-medium text-balance">1. Create admin user</h2>
 
             <div className="grid gap-1">
-              <label htmlFor="email" className="text-sm text-stone-300">
+              <label htmlFor="email" className="text-sm">
                 Email
               </label>
               <input
@@ -95,13 +95,13 @@ export function SetupFlow({
                 name="email"
                 type="email"
                 required
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+                className="envelope-input rounded-lg px-3 py-2"
                 placeholder="you@example.com"
               />
             </div>
 
             <div className="grid gap-1">
-              <label htmlFor="password" className="text-sm text-stone-300">
+              <label htmlFor="password" className="text-sm">
                 Password
               </label>
               <input
@@ -110,21 +110,21 @@ export function SetupFlow({
                 type="password"
                 required
                 minLength={8}
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+                className="envelope-input rounded-lg px-3 py-2"
                 placeholder="At least 8 characters"
               />
             </div>
 
-            <div className="rounded-xl border border-stone-700 bg-stone-950 p-3">
-              <p className="text-sm text-stone-300 text-pretty">
+            <div className="envelope-panel-strong rounded-xl p-3">
+              <p className="text-sm text-pretty">
                 Add this secret to your authenticator app and enter the current 6-digit code.
               </p>
-              <p className="mt-2 font-mono text-sm text-amber-300 break-all">{totpSecret}</p>
-              <p className="mt-2 text-xs text-stone-500 break-all">{otpAuthUri}</p>
+              <p className="mt-2 font-mono text-[var(--color-accent)] text-sm break-all">{totpSecret}</p>
+              <p className="envelope-text-soft mt-2 text-xs break-all">{otpAuthUri}</p>
             </div>
 
             <div className="grid gap-1">
-              <label htmlFor="totpCode" className="text-sm text-stone-300">
+              <label htmlFor="totpCode" className="text-sm">
                 TOTP code
               </label>
               <input
@@ -133,14 +133,14 @@ export function SetupFlow({
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 required
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 font-mono tabular-nums"
+                className="envelope-input rounded-lg px-3 py-2 font-mono tabular-nums"
                 placeholder="123456"
               />
             </div>
 
             <button
               type="submit"
-              className="rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+              className="envelope-button-accent rounded-lg px-4 py-2 text-sm font-medium"
             >
               Create user
             </button>
@@ -183,18 +183,18 @@ export function SetupFlow({
             <h2 className="text-2xl font-medium text-balance">
               {isGmailOnlyFlow ? "Configure Gmail OAuth" : "2. Configure Gmail OAuth"}
             </h2>
-            <div className="rounded-xl border border-stone-700 bg-stone-950/70 p-4">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300">
+            <div className="envelope-panel-strong rounded-xl p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em]">
                 How to get these values
               </h3>
-              <ol className="mt-3 grid gap-2 text-sm text-stone-300">
+              <ol className="mt-3 grid gap-2 text-sm">
                 <li>
                   1. Open{" "}
                   <Link
                     href="https://console.cloud.google.com/"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-amber-300 underline decoration-amber-500/50 underline-offset-4"
+                    className="envelope-link underline underline-offset-4"
                   >
                     Google Cloud Console
                   </Link>{" "}
@@ -206,26 +206,26 @@ export function SetupFlow({
                 <li>5. Add the redirect URI shown below to the client configuration.</li>
                 <li>6. Copy the generated client ID and client secret into this form.</li>
               </ol>
-              <p className="mt-3 text-xs text-stone-500 text-pretty">
+              <p className="envelope-text-soft mt-3 text-xs text-pretty">
                 Use the same host here and in Google Cloud. If they do not match exactly, Gmail
                 connect will fail on callback.
               </p>
             </div>
 
             <div className="grid gap-1">
-              <label htmlFor="clientId" className="text-sm text-stone-300">
+              <label htmlFor="clientId" className="text-sm">
                 Google Client ID
               </label>
               <input
                 id="clientId"
                 name="clientId"
                 required
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+                className="envelope-input rounded-lg px-3 py-2"
               />
             </div>
 
             <div className="grid gap-1">
-              <label htmlFor="clientSecret" className="text-sm text-stone-300">
+              <label htmlFor="clientSecret" className="text-sm">
                 Google Client Secret
               </label>
               <input
@@ -233,12 +233,12 @@ export function SetupFlow({
                 name="clientSecret"
                 type="password"
                 required
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+                className="envelope-input rounded-lg px-3 py-2"
               />
             </div>
 
             <div className="grid gap-1">
-              <label htmlFor="redirectUri" className="text-sm text-stone-300">
+              <label htmlFor="redirectUri" className="text-sm">
                 Redirect URI
               </label>
               <input
@@ -246,9 +246,9 @@ export function SetupFlow({
                 name="redirectUri"
                 required
                 defaultValue={defaultRedirectUri}
-                className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 font-mono text-xs"
+                className="envelope-input rounded-lg px-3 py-2 font-mono text-xs"
               />
-              <p className="text-xs text-stone-500 text-pretty">
+              <p className="envelope-text-soft text-xs text-pretty">
                 Paste this exact URI into the Authorized redirect URIs field for your Google OAuth
                 client.
               </p>
@@ -256,7 +256,7 @@ export function SetupFlow({
 
             <button
               type="submit"
-              className="rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+              className="envelope-button-accent rounded-lg px-4 py-2 text-sm font-medium"
             >
               Save Gmail config
             </button>
@@ -266,12 +266,12 @@ export function SetupFlow({
         {step === "done" ? (
           <div className="grid gap-4">
             <h2 className="text-2xl font-medium text-balance">Setup complete</h2>
-            <p className="text-stone-300 text-pretty">
+            <p className="text-pretty">
               Continue to inbox to connect your first Gmail account and start initial sync.
             </p>
             <Link
               href="/inbox"
-              className="inline-flex w-fit rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+              className="envelope-button-accent inline-flex w-fit rounded-lg px-4 py-2 text-sm font-medium"
             >
               Open inbox
             </Link>

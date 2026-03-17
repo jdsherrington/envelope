@@ -4,12 +4,87 @@
 
 :root {
   color-scheme: dark;
+  --color-canvas: oklch(0.16 0.004 95);
+  --color-pattern-dot: oklch(0.36 0.006 95 / 0.4);
+  --color-panel: oklch(0.22 0.004 95 / 0.96);
+  --color-panel-muted: oklch(0.25 0.004 95 / 0.94);
+  --color-panel-strong: oklch(0.19 0.004 95);
+  --color-rail: oklch(0.21 0.004 95 / 0.98);
+  --color-input: oklch(0.18 0.004 95);
+  --color-border: oklch(0.35 0.006 95);
+  --color-border-strong: oklch(0.46 0.008 95);
+  --color-divider: oklch(0.3 0.004 95);
+  --color-text: oklch(0.95 0.002 95);
+  --color-text-muted: oklch(0.77 0.006 95);
+  --color-text-soft: oklch(0.63 0.006 95);
+  --color-hover: oklch(0.27 0.005 95);
+  --color-selected: oklch(0.31 0.01 95);
+  --color-accent: oklch(0.8 0.14 79);
+  --color-accent-strong: oklch(0.72 0.14 79);
+  --color-accent-surface: oklch(0.35 0.055 79 / 0.36);
+  --color-accent-border: oklch(0.6 0.11 79 / 0.68);
+  --color-link: var(--color-accent);
+  --color-focus: var(--color-accent-strong);
+  --color-success-fg: oklch(0.86 0.11 155);
+  --color-success-border: oklch(0.52 0.08 155 / 0.7);
+  --color-success-surface: oklch(0.3 0.045 155 / 0.45);
+  --color-info-fg: oklch(0.86 0.1 252);
+  --color-info-border: oklch(0.54 0.08 252 / 0.7);
+  --color-info-surface: oklch(0.31 0.04 252 / 0.45);
+  --color-warning-fg: oklch(0.88 0.12 80);
+  --color-warning-border: oklch(0.58 0.1 80 / 0.74);
+  --color-warning-surface: oklch(0.34 0.05 80 / 0.42);
+  --color-danger-fg: oklch(0.82 0.11 28);
+  --color-danger-border: oklch(0.5 0.09 28 / 0.7);
+  --color-danger-surface: oklch(0.31 0.045 28 / 0.45);
 }
 
 body {
-  @apply bg-stone-950 text-stone-100;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='1' cy='1' r='1' fill='%233a3a3a' /%3E%3C/svg%3E");
-  background-repeat: repeat;
+  min-height: 100vh;
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1.15px, transparent 0);
+  background-size: 24px 24px;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-canvas: oklch(0.98 0.002 95);
+  --color-pattern-dot: oklch(0.89 0.004 95 / 0.9);
+  --color-panel: oklch(0.995 0.002 95 / 0.98);
+  --color-panel-muted: oklch(0.975 0.003 95 / 0.96);
+  --color-panel-strong: oklch(0.95 0.004 95);
+  --color-rail: oklch(0.94 0.004 95 / 0.98);
+  --color-input: oklch(0.995 0.002 95);
+  --color-border: oklch(0.9 0.004 95);
+  --color-border-strong: oklch(0.8 0.007 95);
+  --color-divider: oklch(0.92 0.004 95);
+  --color-text: oklch(0.27 0.006 95);
+  --color-text-muted: oklch(0.46 0.005 95);
+  --color-text-soft: oklch(0.61 0.005 95);
+  --color-hover: oklch(0.95 0.003 95);
+  --color-selected: oklch(0.92 0.008 95);
+  --color-accent: oklch(0.63 0.14 79);
+  --color-accent-strong: oklch(0.57 0.14 79);
+  --color-accent-surface: oklch(0.94 0.025 84);
+  --color-accent-border: oklch(0.79 0.08 80 / 0.7);
+  --color-success-fg: oklch(0.48 0.13 155);
+  --color-success-border: oklch(0.82 0.06 155 / 0.7);
+  --color-success-surface: oklch(0.96 0.022 155);
+  --color-info-fg: oklch(0.5 0.12 252);
+  --color-info-border: oklch(0.82 0.06 252 / 0.7);
+  --color-info-surface: oklch(0.96 0.02 252);
+  --color-warning-fg: oklch(0.56 0.14 80);
+  --color-warning-border: oklch(0.82 0.07 80 / 0.7);
+  --color-warning-surface: oklch(0.97 0.024 82);
+  --color-danger-fg: oklch(0.52 0.14 28);
+  --color-danger-border: oklch(0.83 0.07 28 / 0.72);
+  --color-danger-surface: oklch(0.96 0.022 28);
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 h1,
@@ -30,26 +105,259 @@ kbd {
 }
 
 :focus-visible {
-  outline: 2px solid #f59e0b;
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .envelope-contrast-high {
-  color: #ffffff;
+  --color-canvas: oklch(0 0 0);
+  --color-pattern-dot: oklch(1 0 0 / 0.35);
+  --color-panel: oklch(0 0 0);
+  --color-panel-muted: oklch(0 0 0);
+  --color-panel-strong: oklch(0 0 0);
+  --color-rail: oklch(0 0 0);
+  --color-input: oklch(0 0 0);
+  --color-border: oklch(1 0 0);
+  --color-border-strong: oklch(1 0 0);
+  --color-divider: oklch(1 0 0);
+  --color-text: oklch(1 0 0);
+  --color-text-muted: oklch(1 0 0);
+  --color-text-soft: oklch(1 0 0);
+  --color-hover: oklch(0.2 0 0);
+  --color-selected: oklch(0.2 0 0);
+  --color-accent: oklch(0.9 0.16 92);
+  --color-accent-strong: oklch(0.9 0.16 92);
+  --color-accent-surface: oklch(0 0 0);
+  --color-accent-border: oklch(1 0 0);
+  --color-link: oklch(0.9 0.16 92);
+  --color-focus: oklch(0.9 0.16 92);
+  --color-success-fg: oklch(1 0 0);
+  --color-success-border: oklch(1 0 0);
+  --color-success-surface: oklch(0 0 0);
+  --color-info-fg: oklch(1 0 0);
+  --color-info-border: oklch(1 0 0);
+  --color-info-surface: oklch(0 0 0);
+  --color-warning-fg: oklch(1 0 0);
+  --color-warning-border: oklch(1 0 0);
+  --color-warning-surface: oklch(0 0 0);
+  --color-danger-fg: oklch(1 0 0);
+  --color-danger-border: oklch(1 0 0);
+  --color-danger-surface: oklch(0 0 0);
 }
 
-.envelope-contrast-high a {
-  color: #fcd34d !important;
+.envelope-mail-preview {
+  color: inherit;
+  line-height: 1.75;
+  word-break: break-word;
 }
 
-.envelope-contrast-high [class*="border-stone-"] {
-  border-color: #ffffff !important;
+.envelope-mail-preview > * + * {
+  margin-top: 0.9rem;
 }
 
-.envelope-contrast-high [class*="text-stone-"] {
-  color: #ffffff !important;
+.envelope-mail-preview a {
+  color: var(--color-link);
+  text-decoration: underline;
 }
 
-.envelope-contrast-high [class*="bg-stone-"] {
-  background-color: #000000 !important;
+.envelope-mail-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.envelope-mail-preview table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.envelope-mail-preview ul,
+.envelope-mail-preview ol {
+  padding-left: 1.25rem;
+}
+
+.envelope-mail-preview blockquote {
+  border-left: 2px solid var(--color-border-strong);
+  margin-left: 0;
+  padding-left: 1rem;
+}
+
+.envelope-mail-preview pre {
+  white-space: pre-wrap;
+  font-family: var(--font-sans);
+}
+
+.envelope-panel {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel);
+  color: var(--color-text);
+}
+
+.envelope-panel-muted {
+  background-color: var(--color-panel-muted);
+  color: var(--color-text);
+}
+
+.envelope-panel-strong {
+  background-color: var(--color-panel-strong);
+  color: var(--color-text);
+}
+
+.envelope-overlay {
+  background-color: oklch(0.12 0.01 84 / 0.62);
+}
+
+.envelope-rail-veil {
+  background-color: oklch(0.12 0.01 84 / 0.24);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.envelope-rail {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-rail);
+  color: var(--color-text);
+}
+
+.envelope-brand-mark {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel-strong);
+  color: var(--color-text);
+}
+
+.envelope-input {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input);
+  color: var(--color-text);
+}
+
+.envelope-input::placeholder {
+  color: var(--color-text-soft);
+}
+
+.envelope-pill {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel);
+  color: var(--color-text-muted);
+}
+
+.envelope-button-secondary {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input);
+  color: var(--color-text);
+}
+
+.envelope-button-secondary:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-hover);
+}
+
+.envelope-button-accent {
+  border: 1px solid var(--color-accent-border);
+  background-color: var(--color-accent-surface);
+  color: var(--color-accent);
+}
+
+.envelope-button-accent:hover {
+  border-color: var(--color-accent);
+  background-color: color-mix(in oklch, var(--color-accent-surface) 82%, var(--color-accent) 18%);
+}
+
+.envelope-link {
+  color: var(--color-link);
+}
+
+.envelope-text-muted {
+  color: var(--color-text-muted);
+}
+
+.envelope-text-soft {
+  color: var(--color-text-soft);
+}
+
+.envelope-kbd {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel-muted);
+  color: var(--color-text);
+}
+
+.envelope-avatar {
+  background-color: var(--color-panel-strong);
+  color: var(--color-text-muted);
+}
+
+.envelope-skeleton {
+  background-color: var(--color-panel-strong);
+}
+
+.envelope-divider {
+  border-color: var(--color-divider);
+}
+
+.envelope-row-hover:hover {
+  background-color: var(--color-hover);
+}
+
+.envelope-row-selected {
+  background-color: var(--color-selected);
+}
+
+.envelope-status-success {
+  border: 1px solid var(--color-success-border);
+  background-color: var(--color-success-surface);
+  color: var(--color-success-fg);
+}
+
+.envelope-status-info {
+  border: 1px solid var(--color-info-border);
+  background-color: var(--color-info-surface);
+  color: var(--color-info-fg);
+}
+
+.envelope-status-warning {
+  border: 1px solid var(--color-warning-border);
+  background-color: var(--color-warning-surface);
+  color: var(--color-warning-fg);
+}
+
+.envelope-status-danger {
+  border: 1px solid var(--color-danger-border);
+  background-color: var(--color-danger-surface);
+  color: var(--color-danger-fg);
+}
+
+.envelope-inline-notification {
+  border: 1px solid var(--notification-border);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--notification-surface) 58%, transparent) 0%,
+      transparent 62%
+    ),
+    color-mix(in oklch, var(--color-panel-muted) 76%, var(--notification-surface) 24%);
+  box-shadow: 0 28px 64px -40px oklch(0 0 0 / 0.92);
+  color: var(--notification-fg);
+}
+
+.envelope-inline-notification-success {
+  --notification-fg: var(--color-success-fg);
+  --notification-border: var(--color-success-border);
+  --notification-surface: var(--color-success-surface);
+}
+
+.envelope-inline-notification-danger {
+  --notification-fg: var(--color-danger-fg);
+  --notification-border: var(--color-danger-border);
+  --notification-surface: var(--color-danger-surface);
+}
+
+.envelope-inline-notification-dismiss {
+  color: inherit;
+  opacity: 0.92;
+}
+
+.envelope-inline-notification-dismiss:hover {
+  background-color: color-mix(in oklch, currentColor 12%, transparent);
 }

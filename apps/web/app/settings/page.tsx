@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { appRepository } from "@envelope/db";
+import { redirect } from "next/navigation";
 import { AppCommandShell } from "@/components/app-command-shell";
 import { RoutePerfMarker } from "@/components/route-perf-marker";
 import { SettingsPanel } from "@/components/settings-panel";
@@ -10,6 +11,20 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const { user } = await requirePageUser();
+  const accounts = await appRepository.listAccountsForUser(user.id);
+
+  if (accounts.length) {
+    const params = new URLSearchParams({
+      modal: "settings",
+    });
+
+    if (accounts[0]?.id) {
+      params.set("accountId", accounts[0].id);
+    }
+
+    redirect(`/inbox?${params.toString()}`);
+  }
+
   const settings = await appRepository.getUserSettings(user.id);
 
   return (
@@ -22,7 +37,7 @@ export default async function SettingsPage() {
       <RoutePerfMarker route="/settings" />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-3xl font-semibold text-balance">Settings</h1>
-        <Link href="/inbox" className="text-sm text-amber-300">
+        <Link href="/inbox" className="envelope-link text-sm">
           Back to inbox
         </Link>
       </div>

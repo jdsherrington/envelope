@@ -44,36 +44,36 @@ export default async function DiagnosticsPage() {
         <div className="flex items-center gap-2">
           <a
             href="/api/diagnostics/export"
-            className="rounded-lg border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-200"
+            className="envelope-button-secondary rounded-lg px-2 py-1 text-xs"
           >
             Export JSON
           </a>
           <RegisterPasskeyButton />
-          <Link href="/inbox" className="text-sm text-amber-300">
+          <Link href="/inbox" className="envelope-link text-sm">
             Back to inbox
           </Link>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section className="envelope-panel rounded-2xl p-4">
         <h2 className="text-xl font-medium text-balance">Account Health</h2>
         <ul className="mt-3 grid gap-3">
           {accountPanels.map(({ account, quota, sync, failedJobs }) => (
-            <li key={account.id} className="rounded-xl border border-stone-800 bg-stone-950/60 p-3">
+            <li key={account.id} className="envelope-panel-strong rounded-xl p-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-stone-200">{account.email}</p>
-                  <p className="mt-1 text-xs text-stone-400">Status: {account.status}</p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-sm">{account.email}</p>
+                  <p className="envelope-text-muted mt-1 text-xs">Status: {account.status}</p>
+                  <p className="envelope-text-soft text-xs">
                     Last sync: {account.lastSyncedAt ? account.lastSyncedAt.toLocaleString() : "never"}
                   </p>
                 </div>
                 <AccountActionButtons accountId={account.id} status={account.status} />
               </div>
 
-              <div className="mt-3 grid gap-2 rounded-lg border border-stone-800 bg-stone-900/50 p-2 text-xs text-stone-300 md:grid-cols-2">
+              <div className="envelope-panel mt-3 grid gap-2 rounded-lg p-2 text-xs md:grid-cols-2">
                 <div>
-                  <p className="text-stone-500">Quota</p>
+                  <p className="envelope-text-soft">Quota</p>
                   <p>Requests last 60s: {quota.requestsLast60s}</p>
                   <p>Daily estimate: {quota.dailyEstimate}</p>
                   <p>
@@ -89,7 +89,7 @@ export default async function DiagnosticsPage() {
                 </div>
 
                 <div>
-                  <p className="text-stone-500">Sync</p>
+                  <p className="envelope-text-soft">Sync</p>
                   <p>In progress: {sync?.inProgress ? "yes" : "no"}</p>
                   <p>Phase: {sync?.phase ?? "unknown"}</p>
                   <p>
@@ -104,11 +104,11 @@ export default async function DiagnosticsPage() {
         </ul>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section className="envelope-panel mt-4 rounded-2xl p-4">
         <h2 className="text-xl font-medium text-balance">Queue</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-stone-400">
+            <thead className="envelope-text-muted">
               <tr>
                 <th className="px-2 py-1">Type</th>
                 <th className="px-2 py-1">Status</th>
@@ -120,18 +120,18 @@ export default async function DiagnosticsPage() {
             </thead>
             <tbody>
               {diagnostics.jobs.map((job) => (
-                <tr key={job.id} className="border-t border-stone-800">
-                  <td className="px-2 py-1 font-mono text-xs text-stone-200">{job.type}</td>
+                <tr key={job.id} className="envelope-divider border-t">
+                  <td className="px-2 py-1 font-mono text-xs">{job.type}</td>
                   <td className="px-2 py-1">
-                    <span className="rounded border border-stone-700 px-1.5 py-0.5 text-xs uppercase">
+                    <span className="envelope-pill rounded px-1.5 py-0.5 text-xs uppercase">
                       {job.status}
                     </span>
                   </td>
                   <td className="px-2 py-1 tabular-nums">{job.attempt}</td>
-                  <td className="px-2 py-1 tabular-nums text-xs text-stone-400">
+                  <td className="envelope-text-muted px-2 py-1 text-xs tabular-nums">
                     {job.updatedAt.toLocaleString()}
                   </td>
-                  <td className="px-2 py-1 text-xs text-red-300 text-pretty">
+                  <td className="px-2 py-1 text-xs text-[var(--color-danger-fg)] text-pretty">
                     {job.lastErrorCode ? `${job.lastErrorCode}: ${job.lastErrorMessage ?? ""}` : ""}
                   </td>
                   <td className="px-2 py-1">
@@ -146,11 +146,11 @@ export default async function DiagnosticsPage() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section className="envelope-panel mt-4 rounded-2xl p-4">
         <h2 className="text-xl font-medium text-balance">Command Events</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-stone-400">
+            <thead className="envelope-text-muted">
               <tr>
                 <th className="px-2 py-1">Time</th>
                 <th className="px-2 py-1">Command</th>
@@ -161,14 +161,14 @@ export default async function DiagnosticsPage() {
             </thead>
             <tbody>
               {diagnostics.commandEvents.map((event) => (
-                <tr key={event.id} className="border-t border-stone-800">
-                  <td className="px-2 py-1 text-xs text-stone-400">{event.recordedAt.toLocaleString()}</td>
-                  <td className="px-2 py-1 font-mono text-xs text-stone-200">{event.commandId}</td>
+                <tr key={event.id} className="envelope-divider border-t">
+                  <td className="envelope-text-muted px-2 py-1 text-xs">{event.recordedAt.toLocaleString()}</td>
+                  <td className="px-2 py-1 font-mono text-xs">{event.commandId}</td>
                   <td className="px-2 py-1 text-xs uppercase">{event.status}</td>
                   <td className="px-2 py-1 text-xs tabular-nums">
                     {event.durationMs != null ? `${event.durationMs}ms` : "-"}
                   </td>
-                  <td className="px-2 py-1 text-xs text-red-300">{event.errorMessage ?? ""}</td>
+                  <td className="px-2 py-1 text-xs text-[var(--color-danger-fg)]">{event.errorMessage ?? ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -176,11 +176,11 @@ export default async function DiagnosticsPage() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section className="envelope-panel mt-4 rounded-2xl p-4">
         <h2 className="text-xl font-medium text-balance">Performance Events</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-stone-400">
+            <thead className="envelope-text-muted">
               <tr>
                 <th className="px-2 py-1">Time</th>
                 <th className="px-2 py-1">Route</th>
@@ -190,11 +190,11 @@ export default async function DiagnosticsPage() {
             </thead>
             <tbody>
               {diagnostics.perfEvents.map((event) => (
-                <tr key={event.id} className="border-t border-stone-800">
-                  <td className="px-2 py-1 text-xs text-stone-400">{event.recordedAt.toLocaleString()}</td>
-                  <td className="px-2 py-1 text-xs font-mono text-stone-200">{event.route}</td>
-                  <td className="px-2 py-1 text-xs text-stone-200">{event.metric}</td>
-                  <td className="px-2 py-1 text-xs tabular-nums text-stone-300">{event.valueMs}ms</td>
+                <tr key={event.id} className="envelope-divider border-t">
+                  <td className="envelope-text-muted px-2 py-1 text-xs">{event.recordedAt.toLocaleString()}</td>
+                  <td className="px-2 py-1 text-xs font-mono">{event.route}</td>
+                  <td className="px-2 py-1 text-xs">{event.metric}</td>
+                  <td className="envelope-text-muted px-2 py-1 text-xs tabular-nums">{event.valueMs}ms</td>
                 </tr>
               ))}
             </tbody>
@@ -202,11 +202,11 @@ export default async function DiagnosticsPage() {
         </div>
       </section>
 
-      <section id="logs" className="mt-4 rounded-2xl border border-stone-800 bg-stone-900/80 p-4">
+      <section id="logs" className="envelope-panel mt-4 rounded-2xl p-4">
         <h2 className="text-xl font-medium text-balance">Logs</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-stone-400">
+            <thead className="envelope-text-muted">
               <tr>
                 <th className="px-2 py-1">Time</th>
                 <th className="px-2 py-1">Level</th>
@@ -216,11 +216,11 @@ export default async function DiagnosticsPage() {
             </thead>
             <tbody>
               {diagnostics.logs.map((event) => (
-                <tr key={event.id} className="border-t border-stone-800">
-                  <td className="px-2 py-1 text-xs text-stone-400">{event.recordedAt.toLocaleString()}</td>
+                <tr key={event.id} className="envelope-divider border-t">
+                  <td className="envelope-text-muted px-2 py-1 text-xs">{event.recordedAt.toLocaleString()}</td>
                   <td className="px-2 py-1 text-xs uppercase">{event.level}</td>
-                  <td className="px-2 py-1 font-mono text-xs text-stone-200">{event.scope}</td>
-                  <td className="px-2 py-1 text-xs text-stone-300">{event.message}</td>
+                  <td className="px-2 py-1 font-mono text-xs">{event.scope}</td>
+                  <td className="envelope-text-muted px-2 py-1 text-xs">{event.message}</td>
                 </tr>
               ))}
             </tbody>

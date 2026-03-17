@@ -24,7 +24,8 @@ export class SettingsRegistry {
     this.register<UserSettings["theme"]>({
       id: "theme",
       defaultValue: defaultUserSettings.theme,
-      validate: (value): value is UserSettings["theme"] => value === "dark" || value === "light",
+      validate: (value): value is UserSettings["theme"] =>
+        value === "dark" || value === "light" || value === "system",
     });
 
     this.register<UserSettings["density"]>({
@@ -41,10 +42,15 @@ export class SettingsRegistry {
         value === "superhuman" || value === "vim",
     });
 
-    this.register<UserSettings["contrast"]>({
-      id: "contrast",
-      defaultValue: defaultUserSettings.contrast,
-      validate: (value): value is UserSettings["contrast"] => value === "standard" || value === "high",
+    this.register<UserSettings["accent"]>({
+      id: "accent",
+      defaultValue: defaultUserSettings.accent,
+      validate: (value): value is UserSettings["accent"] =>
+        value === "amber" ||
+        value === "blue" ||
+        value === "emerald" ||
+        value === "rose" ||
+        value === "violet",
     });
 
     this.register<UserSettings["hideRareLabels"]>({

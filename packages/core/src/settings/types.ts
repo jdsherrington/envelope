@@ -1,20 +1,20 @@
-export type UserTheme = "dark" | "light";
+export type UserTheme = "dark" | "light" | "system";
 export type UserDensity = "comfortable" | "compact";
 export type UserKeymap = "superhuman" | "vim";
-export type UserContrast = "standard" | "high";
+export type UserAccent = "amber" | "blue" | "emerald" | "rose" | "violet";
 
 export type UserSettings = {
   theme: UserTheme;
   density: UserDensity;
   keymap: UserKeymap;
-  contrast: UserContrast;
+  accent: UserAccent;
   hideRareLabels: boolean;
 };
 
 export const defaultUserSettings: UserSettings = {
-  theme: "dark",
+  theme: "system",
   density: "comfortable",
   keymap: "superhuman",
-  contrast: "standard",
+  accent: "amber",
   hideRareLabels: true,
 };

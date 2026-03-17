@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { appRepository } from "@envelope/db";
 import { requireAuthenticatedRequest } from "@/lib/server/guards";
 import { badRequest, notFound, serverError, unauthorized } from "@/lib/server/http";
+import { sanitizeHtml } from "@/lib/server/sanitize-html";
 
 export async function GET(
   request: NextRequest,
@@ -34,6 +35,7 @@ export async function GET(
       messages: thread.messages.map((message) => ({
         ...message,
         internalDate: message.internalDate.toISOString(),
+        htmlBody: message.htmlBody ? sanitizeHtml(message.htmlBody) : null,
       })),
     });
   } catch (error) {

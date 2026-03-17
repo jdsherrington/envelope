@@ -42,6 +42,71 @@ const minuteBucket = (at: Date): Date =>
 const dayBucket = (at: Date): Date =>
   new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 0, 0, 0, 0));
 
+type ThreadListRow = {
+  id: string;
+  providerThreadId: string;
+  subject: string;
+  snippet: string;
+  lastMessageAt: Date;
+  unreadCount: number;
+  providerLabelIds: string[];
+};
+
+const attachLatestSenders = async (
+  accountId: string,
+  rows: ThreadListRow[],
+): Promise<
+  Array<
+    ThreadListRow & {
+      senderName: string | null;
+      senderEmail: string | null;
+    }
+  >
+> => {
+  if (!rows.length) {
+    return [];
+  }
+
+  const providerThreadIds = Array.from(new Set(rows.map((row) => row.providerThreadId)));
+  const senderRows = await db
+    .select({
+      providerThreadId: messages.providerThreadId,
+      fromName: messages.fromName,
+      fromEmail: messages.fromEmail,
+    })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.accountId, accountId),
+        inArray(messages.providerThreadId, providerThreadIds),
+      ),
+    )
+    .orderBy(desc(messages.internalDate));
+
+  const latestSenderByThread = new Map<
+    string,
+    {
+      senderName: string | null;
+      senderEmail: string | null;
+    }
+  >();
+
+  for (const row of senderRows) {
+    if (!latestSenderByThread.has(row.providerThreadId)) {
+      latestSenderByThread.set(row.providerThreadId, {
+        senderName: row.fromName,
+        senderEmail: row.fromEmail,
+      });
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    senderName: latestSenderByThread.get(row.providerThreadId)?.senderName ?? null,
+    senderEmail: latestSenderByThread.get(row.providerThreadId)?.senderEmail ?? null,
+  }));
+};
+
 export const appRepository = {
   async hasUsers(): Promise<boolean> {
     const [row] = await db.select({ value: count() }).from(users);
@@ -836,6 +901,8 @@ export const appRepository = {
       lastMessageAt: Date;
       unreadCount: number;
       providerLabelIds: string[];
+      senderName: string | null;
+      senderEmail: string | null;
     }>
   > {
     const offset = Math.max(args.page - 1, 0) * args.pageSize;
@@ -857,11 +924,9 @@ export const appRepository = {
 
     const rows = await base;
     const label = args.label;
-    if (!label) {
-      return rows;
-    }
+    const filteredRows = label ? rows.filter((row) => row.providerLabelIds.includes(label)) : rows;
 
-    return rows.filter((row) => row.providerLabelIds.includes(label));
+    return attachLatestSenders(args.accountId, filteredRows);
   },
 
   async searchThreads(args: {
@@ -882,7 +947,7 @@ export const appRepository = {
     const offset = Math.max(args.page - 1, 0) * args.pageSize;
     const pattern = `%${q}%`;
 
-    return db
+    const rows = await db
       .select({
         id: threads.id,
         providerThreadId: threads.providerThreadId,
@@ -902,6 +967,8 @@ export const appRepository = {
       .orderBy(desc(threads.lastMessageAt))
       .offset(offset)
       .limit(args.pageSize);
+
+    return attachLatestSenders(args.accountId, rows);
   },
 
   async getThreadById(threadId: string, accountId: string) {

@@ -124,9 +124,9 @@ export function CommandPalette({
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-overlay bg-black/50" />
+        <Dialog.Overlay className="envelope-overlay fixed inset-0 z-overlay" />
         <Dialog.Content
-          className="fixed left-1/2 top-[20dvh] z-modal w-[min(720px,95vw)] -translate-x-1/2 rounded-2xl border border-stone-700 bg-stone-900 p-4 shadow-xl"
+          className="envelope-panel fixed left-1/2 top-[20dvh] z-modal w-[min(720px,95vw)] -translate-x-1/2 rounded-2xl p-4 shadow-xl"
           aria-describedby="command-palette-description"
           onKeyDown={async (event) => {
             if (event.key === "Escape" && step.type === "picker") {
@@ -168,13 +168,10 @@ export function CommandPalette({
             }
           }}
         >
-          <Dialog.Title className="text-base font-medium text-stone-100 text-balance">
+          <Dialog.Title className="text-base font-medium text-balance">
             {step.type === "commands" ? "Command Palette" : step.commandTitle}
           </Dialog.Title>
-          <Dialog.Description
-            id="command-palette-description"
-            className="mt-1 text-sm text-stone-400 text-pretty"
-          >
+          <Dialog.Description id="command-palette-description" className="envelope-text-muted mt-1 text-sm text-pretty">
             {step.type === "commands"
               ? "Execute commands quickly across the app."
               : "Pick an option to complete this command."}
@@ -188,12 +185,12 @@ export function CommandPalette({
               setActiveIndex(0);
             }}
             placeholder={step.type === "commands" ? "Type a command" : "Type to filter"}
-            className="mt-4 w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-sm text-stone-100 outline-none focus-visible:border-amber-500"
+            className="envelope-input mt-4 w-full rounded-xl px-3 py-2 text-sm outline-none"
             aria-label={step.type === "commands" ? "Search commands" : "Search options"}
           />
 
-          <div className="mt-3 max-h-[50dvh] overflow-y-auto rounded-xl border border-stone-800 bg-stone-950/70">
-            <p className="px-3 py-2 text-xs text-stone-500 tabular-nums" aria-live="polite">
+          <div className="envelope-panel-strong mt-3 max-h-[50dvh] overflow-y-auto rounded-xl">
+            <p className="envelope-text-soft px-3 py-2 text-xs tabular-nums" aria-live="polite">
               {currentResults.length} results
             </p>
             <ul role="listbox" aria-label="Command results" className="pb-2">
@@ -206,19 +203,19 @@ export function CommandPalette({
                         className={cn(
                           "flex w-full items-start justify-between gap-3 px-3 py-2 text-left",
                           index === activeIndex
-                            ? "bg-amber-500/20 text-amber-200"
-                            : "text-stone-200 hover:bg-stone-800",
+                            ? "bg-[var(--color-accent-surface)] text-[var(--color-accent)]"
+                            : "text-[var(--color-text)] hover:bg-[var(--color-hover)]",
                         )}
                       >
                         <span>
                           <span className="block text-sm font-medium text-balance">{command.title}</span>
                           {command.subtitle ? (
-                            <span className="mt-0.5 block text-xs text-stone-400 text-pretty">
+                            <span className="envelope-text-muted mt-0.5 block text-xs text-pretty">
                               {command.subtitle}
                             </span>
                           ) : null}
                         </span>
-                        <span className="rounded-md border border-stone-700 px-2 py-0.5 text-[10px] uppercase text-stone-400">
+                        <span className="envelope-pill rounded-md px-2 py-0.5 text-[10px] uppercase">
                           {command.category}
                         </span>
                       </button>
@@ -232,14 +229,14 @@ export function CommandPalette({
                         className={cn(
                           "flex w-full items-start justify-between gap-3 px-3 py-2 text-left",
                           index === activeIndex
-                            ? "bg-amber-500/20 text-amber-200"
-                            : "text-stone-200 hover:bg-stone-800",
+                            ? "bg-[var(--color-accent-surface)] text-[var(--color-accent)]"
+                            : "text-[var(--color-text)] hover:bg-[var(--color-hover)]",
                         )}
                       >
                         <span>
                           <span className="block text-sm font-medium text-balance">{item.title}</span>
                           {item.subtitle ? (
-                            <span className="mt-0.5 block text-xs text-stone-400 text-pretty">
+                            <span className="envelope-text-muted mt-0.5 block text-xs text-pretty">
                               {item.subtitle}
                             </span>
                           ) : null}

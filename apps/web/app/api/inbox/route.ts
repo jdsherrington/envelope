@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
       items: items.map((item) => ({
         ...item,
         lastMessageAt: item.lastMessageAt.toISOString(),
+        senderName: item.senderName,
+        senderEmail: item.senderEmail,
       })),
     });
   } catch (error) {

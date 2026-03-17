@@ -33,12 +33,12 @@ export function ConnectGmailButton() {
             setIsLoading(false);
           }
         }}
-        className="inline-flex w-fit rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+        className="envelope-button-accent inline-flex w-fit rounded-lg px-4 py-2 text-sm font-medium"
       >
         {isLoading ? "Redirecting..." : "Connect with Google"}
       </button>
       {error ? (
-        <p className="text-sm text-red-300 text-pretty" role="alert">
+        <p className="text-[var(--color-danger-fg)] text-sm text-pretty" role="alert">
           {error}
         </p>
       ) : null}

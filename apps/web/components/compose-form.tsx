@@ -274,24 +274,24 @@ export function ComposeForm({
   }, [appendBodyContent, runSaveDraft, runSend, runSendLater, runUndoSend]);
 
   return (
-    <section className="rounded-2xl border border-stone-800 bg-stone-900/80 p-5">
+    <section className="envelope-panel rounded-2xl p-5">
       <h1 className="text-2xl font-semibold text-balance">Compose</h1>
-      <p className="mt-1 text-sm text-stone-400">Draft, send now, or schedule delivery.</p>
+      <p className="envelope-text-muted mt-1 text-sm">Draft, send now, or schedule delivery.</p>
 
       {status ? (
-        <p className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+        <p className="envelope-status-success mt-3 rounded-lg px-3 py-2 text-sm">
           {status}
         </p>
       ) : null}
 
       {error ? (
-        <p className="mt-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="envelope-status-danger mt-3 rounded-lg px-3 py-2 text-sm">
           {error}
         </p>
       ) : null}
 
       {undoState ? (
-        <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+        <div className="envelope-status-warning mt-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm">
           <span>
             Send queued. Undo available for {Math.max(0, Math.ceil((undoState.expiresAt - Date.now()) / 1000))}s.
           </span>
@@ -300,7 +300,7 @@ export function ComposeForm({
             onClick={() => {
               void runUndoSend();
             }}
-            className="rounded border border-amber-500/70 bg-amber-500/10 px-2 py-1 text-xs uppercase"
+            className="envelope-button-accent rounded px-2 py-1 text-xs uppercase"
           >
             Undo send
           </button>
@@ -315,28 +315,28 @@ export function ComposeForm({
         }}
       >
         <label className="grid gap-1 text-sm">
-          <span className="text-stone-300">To</span>
+          <span>To</span>
           <input
             value={to}
             onChange={(event) => setTo(event.target.value)}
             placeholder="alice@example.com, bob@example.com"
-            className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+            className="envelope-input rounded-lg px-3 py-2"
             required
           />
         </label>
 
         <label className="grid gap-1 text-sm">
-          <span className="text-stone-300">Subject</span>
+          <span>Subject</span>
           <input
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+            className="envelope-input rounded-lg px-3 py-2"
             required
           />
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="snippet" className="text-sm text-stone-400">
+          <label htmlFor="snippet" className="envelope-text-muted text-sm">
             Insert snippet
           </label>
           <select
@@ -348,7 +348,7 @@ export function ComposeForm({
               }
               appendBodyContent(selected);
             }}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-2 py-1 text-sm"
+            className="envelope-input rounded-lg px-2 py-1 text-sm"
             defaultValue=""
           >
             <option value="" disabled>
@@ -361,7 +361,7 @@ export function ComposeForm({
             ))}
           </select>
 
-          <label htmlFor="template" className="text-sm text-stone-400">
+          <label htmlFor="template" className="envelope-text-muted text-sm">
             Insert template
           </label>
           <select
@@ -373,7 +373,7 @@ export function ComposeForm({
               }
               appendBodyContent(selected);
             }}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-2 py-1 text-sm"
+            className="envelope-input rounded-lg px-2 py-1 text-sm"
             defaultValue=""
           >
             <option value="" disabled>
@@ -391,14 +391,14 @@ export function ComposeForm({
             onClick={() => {
               setIsRich((current) => !current);
             }}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-1 text-xs uppercase"
+            className="envelope-button-secondary rounded-lg px-3 py-1 text-xs uppercase"
           >
             {isRich ? "Plain text" : "Rich text"}
           </button>
         </div>
 
         <label className="grid gap-1 text-sm">
-          <span className="text-stone-300">Body</span>
+          <span>Body</span>
           {isRich ? (
             <div
               ref={richRef}
@@ -407,7 +407,7 @@ export function ComposeForm({
               onInput={(event) => {
                 setHtmlBody((event.currentTarget as HTMLDivElement).innerHTML);
               }}
-              className="min-h-64 rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-stone-100"
+              className="envelope-input min-h-64 rounded-lg px-3 py-2"
               dangerouslySetInnerHTML={{ __html: htmlBody }}
             />
           ) : (
@@ -415,25 +415,25 @@ export function ComposeForm({
               value={textBody}
               onChange={(event) => setTextBody(event.target.value)}
               rows={12}
-              className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+              className="envelope-input rounded-lg px-3 py-2"
             />
           )}
         </label>
 
         <label className="grid gap-1 text-sm">
-          <span className="text-stone-300">Send later (optional)</span>
+          <span>Send later (optional)</span>
           <input
             type="datetime-local"
             value={sendAt}
             onChange={(event) => setSendAt(event.target.value)}
-            className="w-fit rounded-lg border border-stone-700 bg-stone-950 px-3 py-2"
+            className="envelope-input w-fit rounded-lg px-3 py-2"
           />
         </label>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
-            className="rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+            className="envelope-button-accent rounded-lg px-4 py-2 text-sm font-medium"
           >
             Send
           </button>
@@ -443,7 +443,7 @@ export function ComposeForm({
             onClick={() => {
               void runSaveDraft();
             }}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-4 py-2 text-sm"
+            className="envelope-button-secondary rounded-lg px-4 py-2 text-sm"
           >
             Save draft
           </button>
@@ -453,7 +453,7 @@ export function ComposeForm({
             onClick={() => {
               void runSendLater();
             }}
-            className="rounded-lg border border-stone-700 bg-stone-950 px-4 py-2 text-sm"
+            className="envelope-button-secondary rounded-lg px-4 py-2 text-sm"
           >
             Send later
           </button>

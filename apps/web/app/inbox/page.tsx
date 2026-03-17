@@ -10,6 +10,7 @@ type InboxPageProps = {
     accountId?: string;
     connected?: string;
     oauth?: string;
+    threadId?: string;
   }>;
 };
 
@@ -34,15 +35,15 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-4 py-8">
         {query.oauth ? (
-          <div className="mb-4 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="envelope-status-danger mb-4 rounded-xl px-4 py-3 text-sm">
             OAuth status: {query.oauth}
           </div>
         ) : null}
-        <div className="rounded-2xl border border-stone-800 bg-stone-900/80 p-6">
+        <div className="envelope-panel rounded-2xl p-6">
           <h1 className="text-3xl font-semibold text-balance">
             {hasGmailConfig ? "Connect your first Gmail account" : "Finish Gmail setup"}
           </h1>
-          <p className="mt-2 text-stone-400 text-pretty">
+          <p className="envelope-text-muted mt-2 text-pretty">
             {hasGmailConfig
               ? "OAuth client configuration is saved. Start the OAuth flow to import your inbox."
               : "Add your Google OAuth client ID, secret, and redirect URI before starting the Gmail connect flow."}
@@ -53,7 +54,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
             ) : (
               <a
                 href="/setup"
-                className="inline-flex w-fit rounded-lg border border-amber-500 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200"
+                className="envelope-button-accent inline-flex w-fit rounded-lg px-4 py-2 text-sm font-medium"
               >
                 Configure Gmail OAuth
               </a>
@@ -67,13 +68,14 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
   return (
     <>
       {query.connected ? (
-        <div className="mx-auto mt-4 w-full max-w-7xl rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+        <div className="envelope-status-success mx-auto mt-4 w-full max-w-7xl rounded-lg px-4 py-2 text-sm">
           Account connected. Initial sync is running.
         </div>
       ) : null}
       <InboxApp
         userId={user.id}
         initialAccountId={activeAccountId}
+        initialThreadId={query.threadId ?? null}
         initialSettings={{
           theme: settings.theme === "light" ? "light" : "dark",
           density: settings.density === "compact" ? "compact" : "comfortable",
@@ -94,6 +96,8 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         initialThreads={initialThreads.map((thread) => ({
           ...thread,
           lastMessageAt: thread.lastMessageAt.toISOString(),
+          senderName: thread.senderName,
+          senderEmail: thread.senderEmail,
         }))}
       />
     </>
