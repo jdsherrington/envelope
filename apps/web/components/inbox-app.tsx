@@ -339,6 +339,15 @@ function ChevronDownIcon() {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
 function InlineNotification({
   notification,
   visible,
@@ -1479,7 +1488,8 @@ export function InboxApp({
     [previewPaneWidth],
   );
 
-  const rowHeight = settings.density === "compact" ? 64 : 78;
+  const isCompactDensity = settings.density === "compact";
+  const rowHeight = isCompactDensity ? 56 : 78;
   const overscan = 8;
   const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
   const endIndex = Math.min(
@@ -1759,35 +1769,37 @@ export function InboxApp({
             className="envelope-panel flex min-h-[30rem] min-w-0 flex-1 flex-col overflow-hidden rounded-lg xl:min-h-0 xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
           >
             <div className="envelope-panel-muted envelope-divider border-b px-4 pb-4 pt-5 lg:px-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-[2rem] font-semibold leading-none text-balance">Inbox</h1>
+              {selectedThreadIds.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
+                    {selectedThreadIds.length} selected
+                  </span>
                 </div>
+              ) : null}
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {selectedThreadIds.length > 0 ? (
-                    <span className="envelope-pill rounded-lg px-3 py-1 text-xs font-medium">
-                      {selectedThreadIds.length} selected
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mt-5 max-w-3xl">
+              <div className={cn("w-full", selectedThreadIds.length > 0 && "mt-4")}>
                 <label className="sr-only" htmlFor="search-inbox">
-                  Search inbox
+                  Search mail
                 </label>
-                <input
-                  id="search-inbox"
-                  name="search"
-                  ref={searchRef}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Search subject, snippet, or sender…"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  className="envelope-input w-full rounded-lg px-4 py-3 text-sm"
-                />
+                <div className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="envelope-text-soft pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4"
+                  >
+                    <SearchIcon />
+                  </span>
+                  <input
+                    id="search-inbox"
+                    name="search"
+                    ref={searchRef}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Search mail"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="envelope-input w-full rounded-lg py-3 pl-11 pr-4 text-sm"
+                  />
+                </div>
               </div>
 
               {(syncProgress?.inProgress || syncLooksStale) ? (
@@ -1867,14 +1879,18 @@ export function InboxApp({
                       >
                         <div
                           className={cn(
-                            "relative grid h-full grid-cols-[auto,1fr] gap-3 px-4 transition-colors duration-100 lg:px-5",
+                            "relative grid h-full grid-cols-[auto,1fr] transition-colors duration-100",
+                            isCompactDensity ? "gap-3 px-3 lg:px-4" : "gap-3 px-4 lg:px-5",
                             previewed ? "envelope-row-selected" : "envelope-row-hover",
                           )}
                         >
                           {previewed ? (
                             <span
                               aria-hidden
-                              className="absolute inset-y-3 left-0 w-1 rounded-r-lg bg-[var(--color-accent)]"
+                              className={cn(
+                                "absolute left-0 w-1 rounded-r-lg bg-[var(--color-accent)]",
+                                isCompactDensity ? "inset-y-2" : "inset-y-3",
+                              )}
                             />
                           ) : null}
 
@@ -1938,21 +1954,40 @@ export function InboxApp({
                             }}
                             className="min-w-0 touch-manipulation text-left"
                           >
-                            <div className="flex h-full items-center justify-between gap-3">
+                            <div
+                              className={cn(
+                                "flex h-full items-center justify-between",
+                                isCompactDensity ? "gap-2" : "gap-3",
+                              )}
+                            >
                               <div className="min-w-0">
-                                <div className="md:grid md:grid-cols-[minmax(8.5rem,11rem)_minmax(0,1fr)] md:items-center md:gap-4">
+                                <div
+                                  className={cn(
+                                    "md:grid md:items-center",
+                                    isCompactDensity
+                                      ? "md:grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] md:gap-3"
+                                      : "md:grid-cols-[minmax(8.5rem,11rem)_minmax(0,1fr)] md:gap-4",
+                                  )}
+                                >
                                   <p
                                     className={cn(
                                       "truncate text-sm",
+                                      isCompactDensity && "leading-tight",
                                       thread.unreadCount > 0 ? "font-semibold" : "font-medium",
                                     )}
                                   >
                                     {formatThreadSender(thread)}
                                   </p>
-                                  <div className="mt-1 grid min-w-0 grid-cols-[fit-content(100%)_auto_minmax(0,1fr)] items-center gap-x-2 md:mt-0">
+                                  <div
+                                    className={cn(
+                                      "grid min-w-0 grid-cols-[fit-content(100%)_auto_minmax(0,1fr)] items-center md:mt-0",
+                                      isCompactDensity ? "mt-0.5 gap-x-1.5" : "mt-1 gap-x-2",
+                                    )}
+                                  >
                                     <p
                                       className={cn(
                                         "min-w-0 truncate text-sm",
+                                        isCompactDensity && "leading-tight",
                                         thread.unreadCount > 0 ? "font-semibold" : "font-medium",
                                       )}
                                     >
@@ -1961,14 +1996,24 @@ export function InboxApp({
                                     <span className="envelope-text-soft shrink-0 text-xs">
                                       -
                                     </span>
-                                    <p className="envelope-text-muted min-w-0 truncate text-sm">
+                                    <p
+                                      className={cn(
+                                        "envelope-text-muted min-w-0 truncate text-sm",
+                                        isCompactDensity && "leading-tight",
+                                      )}
+                                    >
                                       {thread.snippet || "No preview available"}
                                     </p>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="ml-4 flex shrink-0 items-center gap-3 pl-2">
+                              <div
+                                className={cn(
+                                  "flex shrink-0 items-center",
+                                  isCompactDensity ? "ml-3 gap-2 pl-1" : "ml-4 gap-3 pl-2",
+                                )}
+                              >
                                 <span
                                   className={cn(
                                     "size-2 rounded-full",
